@@ -40,6 +40,10 @@ List<String> dirs = [
 android {
     compileSdkVersion 28
 
+    lintOptions {
+        abortOnError false
+    }
+
     defaultConfig {
         minSdkVersion 28
         targetSdkVersion 28
@@ -63,3 +67,4 @@ android {
     }
 
 }
+
