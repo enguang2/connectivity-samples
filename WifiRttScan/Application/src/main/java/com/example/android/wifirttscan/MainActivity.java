@@ -63,6 +63,9 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     private MyAdapter mAdapter;
 
+    long startTime;
+    long endTime;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,6 +130,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     public void onClickFindDistancesToAccessPoints(View view) {
         if (mLocationPermissionApproved) {
             logToUi(getString(R.string.retrieving_access_points));
+
+            // Start WiFi scan, log time. Results will be received in WifiScanReceiver.
+            startTime = System.currentTimeMillis();
+            Log.d(TAG, "WiFi scan started at: " + startTime);
             mWifiManager.startScan();
 
         } else {
@@ -158,6 +165,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         // This is checked via mLocationPermissionApproved boolean
         @SuppressLint("MissingPermission")
         public void onReceive(Context context, Intent intent) {
+            // Log the time when the scan finishes
+            endTime = System.currentTimeMillis();
+            Log.d(TAG, "WiFi scan finished at: " + endTime);
+            Log.d(TAG, "WiFi scan duration: " + (endTime - startTime) + " ms");
 
             List<ScanResult> scanResults = mWifiManager.getScanResults();
 
