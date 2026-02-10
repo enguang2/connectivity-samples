@@ -19,14 +19,13 @@ import static com.example.android.wifirttscan.AccessPointRangingResultsActivity.
 
 import android.Manifest.permission;
 import android.annotation.SuppressLint;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.net.wifi.rtt.RangingRequest;
+import android.os.Build;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -61,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     List<ScanResult> mAccessPointsSupporting80211mc;
 
     private WifiManager mWifiManager;
-    private WifiScanReceiver mWifiScanReceiver;
+    private WifiScanResultsCallback mWifiScanResultsCallback;
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
     private TextView mOutputTextView;
@@ -110,7 +109,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         mRecyclerView.setAdapter(mAdapter);
 
         mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        mWifiScanReceiver = new WifiScanReceiver();
+        mWifiScanResultsCallback = new WifiScanResultsCallback();
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
@@ -123,15 +122,25 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                 ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION)
                         == PackageManager.PERMISSION_GRANTED;
 
-        registerReceiver(
-                mWifiScanReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            mWifiManager.registerScanResultsCallback(getMainExecutor(), mWifiScanResultsCallback);
+            Log.d(TAG, "Registered WifiManager.ScanResultsCallback");
+        } else {
+            logToUi("Scan results callback requires Android 11+ (API 30).");
+        }
     }
 
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause()");
         super.onPause();
-        unregisterReceiver(mWifiScanReceiver);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                mWifiManager.unregisterScanResultsCallback(mWifiScanResultsCallback);
+            } catch (IllegalArgumentException e) {
+                Log.w(TAG, "Wifi scan callback was not registered.", e);
+            }
+        }
         mFusedLocationProviderClient.removeLocationUpdates(mFlpScanTriggerCallback);
     }
 
@@ -183,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                 locationRequest, mFlpScanTriggerCallback, getMainLooper());
     }
 
-    private class WifiScanReceiver extends BroadcastReceiver {
+    private class WifiScanResultsCallback extends WifiManager.ScanResultsCallback {
 
         private List<ScanResult> find80211mcSupportedAccessPoints(
                 @NonNull List<ScanResult> originalList) {
@@ -203,8 +212,9 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         }
 
         // This is checked via mLocationPermissionApproved boolean
+        @Override
         @SuppressLint("MissingPermission")
-        public void onReceive(Context context, Intent intent) {
+        public void onScanResultsAvailable() {
             // Log the time when the scan finishes
             scanendTime = System.currentTimeMillis();
             Log.d(TAG, "WiFi scan finished at: " + scanendTime);
