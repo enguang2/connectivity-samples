@@ -181,18 +181,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     }
 
     @SuppressLint("MissingPermission")
-    // private void requestFlpTriggeredScan() {
-    //     LocationRequest locationRequest = LocationRequest.create();
-    //     locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-    //     locationRequest.setInterval(1L);
-    //     locationRequest.setFastestInterval(0L);
-    //     locationRequest.setNumUpdates(1);
-    //     locationRequest.setExpirationDuration(10000L);
-
-    //     mFusedLocationProviderClient.requestLocationUpdates(
-    //             locationRequest, mFlpScanTriggerCallback, getMainLooper());
-    // }
-
     private void requestFlpTriggeredScan() {
         // NEW API: Use the Builder pattern
         // Param 1: Priority (High Accuracy = GPS + WiFi)
