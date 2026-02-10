@@ -41,6 +41,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 
 import com.example.android.wifirttscan.MyAdapter.ScanResultClickListener;
 
@@ -83,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             Log.d(TAG, "FLP location update received at: " + flpendTime);
             Log.d(TAG, "FLP location update duration: " + (flpendTime - flpstartTime) + " ms");
 
-            mFusedLocationProviderClient.removeLocationUpdates(this);
+            // mFusedLocationProviderClient.removeLocationUpdates(this);
         }
     };
 
@@ -180,16 +181,50 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     }
 
     @SuppressLint("MissingPermission")
-    private void requestFlpTriggeredScan() {
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(1L);
-        locationRequest.setFastestInterval(0L);
-        locationRequest.setNumUpdates(1);
-        locationRequest.setExpirationDuration(10000L);
+    // private void requestFlpTriggeredScan() {
+    //     LocationRequest locationRequest = LocationRequest.create();
+    //     locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    //     locationRequest.setInterval(1L);
+    //     locationRequest.setFastestInterval(0L);
+    //     locationRequest.setNumUpdates(1);
+    //     locationRequest.setExpirationDuration(10000L);
 
-        mFusedLocationProviderClient.requestLocationUpdates(
-                locationRequest, mFlpScanTriggerCallback, getMainLooper());
+    //     mFusedLocationProviderClient.requestLocationUpdates(
+    //             locationRequest, mFlpScanTriggerCallback, getMainLooper());
+    // }
+
+    private void requestFlpTriggeredScan() {
+        // NEW API: Use the Builder pattern
+        // Param 1: Priority (High Accuracy = GPS + WiFi)
+        // Param 2: Interval (0ms = request updates as fast as possible)
+        LocationRequest locationRequest = new LocationRequest.Builder(
+                Priority.PRIORITY_HIGH_ACCURACY, 0) 
+                
+                // Set the minimum time between updates to 0 (process every single one)
+                .setMinUpdateIntervalMillis(0)
+                
+                // Set max wait time to 0 to disable batching (deliver immediately)
+                .setMaxUpdateDelayMillis(0)
+                
+                // Optional: Don't wait for a "perfect" fix, give me whatever you have immediately
+                .setWaitForAccurateLocation(false) 
+
+                .setMinUpdateDistanceMeters(0)
+                
+                .build();
+    
+        // Request continuous updates (no setNumUpdates(1))
+        // Note: You must handle the permission check before calling this!
+        try {
+            mFusedLocationProviderClient.requestLocationUpdates(
+                    locationRequest, 
+                    mFlpScanTriggerCallback, 
+                    getMainLooper());
+                    
+        } catch (SecurityException e) {
+            // Handle permission error (conceptually, you should check permissions before this block)
+            Log.e(TAG, "Location permission missing", e);
+        }
     }
 
     private class WifiScanResultsCallback extends WifiManager.ScanResultsCallback {
