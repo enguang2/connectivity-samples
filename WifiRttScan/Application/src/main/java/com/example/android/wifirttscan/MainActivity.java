@@ -30,6 +30,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.LayoutManager;
@@ -61,10 +62,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     private RecyclerView mRecyclerView;
 
     private MyAdapter mAdapter;
-
-    long startTime;
-    long endTime;
-    private boolean mContinuousScanningEnabled = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,7 +109,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     protected void onPause() {
         Log.d(TAG, "onPause()");
         super.onPause();
-        mContinuousScanningEnabled = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 mWifiManager.unregisterScanResultsCallback(mWifiScanResultsCallback);
@@ -140,24 +136,18 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     public void onClickFindDistancesToAccessPoints(View view) {
         if (mLocationPermissionApproved) {
-            logToUi(getString(R.string.retrieving_access_points));
-            mContinuousScanningEnabled = true;
-
-            triggerNextScan();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ContextCompat.startForegroundService(
+                        this, ContinuousWifiScanService.createStartIntent(this));
+                logToUi("Started background continuous Wi-Fi scan.");
+            } else {
+                logToUi("Background continuous scan requires Android 11+ (API 30).");
+            }
 
         } else {
             // On 23+ (M+) devices, fine location permission not granted. Request permission.
             Intent startIntent = new Intent(this, LocationPermissionRequestActivity.class);
             startActivity(startIntent);
-        }
-    }
-
-    private void triggerNextScan() {
-        startTime = System.currentTimeMillis();
-        Log.d(TAG, "WiFi scan started at: " + startTime);
-        boolean scanStarted = mWifiManager.startScan();
-        if (!scanStarted) {
-            Log.w(TAG, "WifiManager.startScan() returned false.");
         }
     }
 
@@ -184,38 +174,23 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         @Override
         @SuppressLint("MissingPermission")
         public void onScanResultsAvailable() {
-            if (!mContinuousScanningEnabled) {
+            if (!mLocationPermissionApproved) {
+                Log.d(TAG, "Permissions not allowed.");
                 return;
             }
-
-            // Log the time when the scan finishes
-            endTime = System.currentTimeMillis();
-            Log.d(TAG, "WiFi scan finished at: " + endTime);
-            Log.d(TAG, "WiFi scan duration: " + (endTime - startTime) + " ms");
 
             List<ScanResult> scanResults = mWifiManager.getScanResults();
 
             if (scanResults != null) {
+                mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
 
-                if (mLocationPermissionApproved) {
-                    mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
+                mAdapter.swapData(mAccessPointsSupporting80211mc);
 
-                    mAdapter.swapData(mAccessPointsSupporting80211mc);
-
-                    logToUi(
-                            scanResults.size()
-                                    + " APs discovered, "
-                                    + mAccessPointsSupporting80211mc.size()
-                                    + " RTT capable.");
-
-                } else {
-                    // TODO (jewalker): Add Snackbar regarding permissions
-                    Log.d(TAG, "Permissions not allowed.");
-                }
-            }
-
-            if (mContinuousScanningEnabled) {
-                triggerNextScan();
+                logToUi(
+                        scanResults.size()
+                                + " APs discovered, "
+                                + mAccessPointsSupporting80211mc.size()
+                                + " RTT capable.");
             }
         }
     }
