@@ -23,7 +23,8 @@
     <string name="recycler_row_header_label_ssid">SSID</string>
     <string name="recycler_row_header_label_bssid">BSSID</string>
     <string name="retrieving_access_points">Retrieving Access Points&#8230;</string>
-    <string name="scan_wifi_button_label">Scan WiFi</string>
+    <string name="scan_wifi_button_label">Start Background FLP</string>
+    <string name="stop_scan_button_label">Stop Background FLP</string>
     <string name="introduction_text">Click the button below to scan access points.</string>
 
     <!-- Strings for AccessPointRangingResultsActivity. -->

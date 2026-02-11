@@ -30,18 +30,13 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.LayoutManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.Priority;
 
 import com.example.android.wifirttscan.MyAdapter.ScanResultClickListener;
 
@@ -62,31 +57,11 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     private WifiManager mWifiManager;
     private WifiScanResultsCallback mWifiScanResultsCallback;
-    private FusedLocationProviderClient mFusedLocationProviderClient;
 
     private TextView mOutputTextView;
     private RecyclerView mRecyclerView;
 
     private MyAdapter mAdapter;
-
-    long scanstartTime;
-    long flpstartTime;
-    long scanendTime;
-    long flpendTime;
-
-
-    private final LocationCallback mFlpScanTriggerCallback = new LocationCallback() {
-        @Override
-        public void onLocationResult(LocationResult locationResult) {
-
-
-            flpendTime = System.currentTimeMillis();
-            Log.d(TAG, "FLP location update received at: " + flpendTime);
-            Log.d(TAG, "FLP location update duration: " + (flpendTime - flpstartTime) + " ms");
-
-            // mFusedLocationProviderClient.removeLocationUpdates(this);
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +86,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
         mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         mWifiScanResultsCallback = new WifiScanResultsCallback();
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     @Override
@@ -142,7 +116,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                 Log.w(TAG, "Wifi scan callback was not registered.", e);
             }
         }
-        mFusedLocationProviderClient.removeLocationUpdates(mFlpScanTriggerCallback);
     }
 
     private void logToUi(final String message) {
@@ -163,15 +136,9 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     public void onClickFindDistancesToAccessPoints(View view) {
         if (mLocationPermissionApproved) {
-            logToUi(getString(R.string.retrieving_access_points));
-
-            // Trigger FLP high-accuracy request and measure time until scan broadcast arrives.
-            flpstartTime = System.currentTimeMillis();
-            Log.d(TAG, "FLP request started at: " + flpstartTime);
-
-            scanstartTime = flpstartTime;
-            Log.d(TAG, "WiFi scan started at: " + scanstartTime);
-            requestFlpTriggeredScan();
+            ContextCompat.startForegroundService(
+                    this, ContinuousFlpScanService.createStartIntent(this));
+            logToUi("Started background FLP request loop.");
 
         } else {
             // On 23+ (M+) devices, fine location permission not granted. Request permission.
@@ -180,39 +147,9 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         }
     }
 
-    @SuppressLint("MissingPermission")
-    private void requestFlpTriggeredScan() {
-        // NEW API: Use the Builder pattern
-        // Param 1: Priority (High Accuracy = GPS + WiFi)
-        // Param 2: Interval (0ms = request updates as fast as possible)
-        LocationRequest locationRequest = new LocationRequest.Builder(
-                Priority.PRIORITY_HIGH_ACCURACY, 0) 
-                
-                // Set the minimum time between updates to 0 (process every single one)
-                .setMinUpdateIntervalMillis(0)
-                
-                // Set max wait time to 0 to disable batching (deliver immediately)
-                .setMaxUpdateDelayMillis(0)
-                
-                // Optional: Don't wait for a "perfect" fix, give me whatever you have immediately
-                .setWaitForAccurateLocation(false) 
-
-                .setMinUpdateDistanceMeters(0)
-                
-                .build();
-    
-        // Request continuous updates (no setNumUpdates(1))
-        // Note: You must handle the permission check before calling this!
-        try {
-            mFusedLocationProviderClient.requestLocationUpdates(
-                    locationRequest, 
-                    mFlpScanTriggerCallback, 
-                    getMainLooper());
-                    
-        } catch (SecurityException e) {
-            // Handle permission error (conceptually, you should check permissions before this block)
-            Log.e(TAG, "Location permission missing", e);
-        }
+    public void onClickStopBackgroundScan(View view) {
+        startService(ContinuousFlpScanService.createStopIntent(this));
+        logToUi("Stopped background FLP request loop.");
     }
 
     private class WifiScanResultsCallback extends WifiManager.ScanResultsCallback {
@@ -238,30 +175,23 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         @Override
         @SuppressLint("MissingPermission")
         public void onScanResultsAvailable() {
-            // Log the time when the scan finishes
-            scanendTime = System.currentTimeMillis();
-            Log.d(TAG, "WiFi scan finished at: " + scanendTime);
-            Log.d(TAG, "WiFi scan duration: " + (scanendTime - scanstartTime) + " ms");
+            if (!mLocationPermissionApproved) {
+                Log.d(TAG, "Permissions not allowed.");
+                return;
+            }
 
             List<ScanResult> scanResults = mWifiManager.getScanResults();
 
             if (scanResults != null) {
+                mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
 
-                if (mLocationPermissionApproved) {
-                    mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
+                mAdapter.swapData(mAccessPointsSupporting80211mc);
 
-                    mAdapter.swapData(mAccessPointsSupporting80211mc);
-
-                    logToUi(
-                            scanResults.size()
-                                    + " APs discovered, "
-                                    + mAccessPointsSupporting80211mc.size()
-                                    + " RTT capable.");
-
-                } else {
-                    // TODO (jewalker): Add Snackbar regarding permissions
-                    Log.d(TAG, "Permissions not allowed.");
-                }
+                logToUi(
+                        scanResults.size()
+                                + " APs discovered, "
+                                + mAccessPointsSupporting80211mc.size()
+                                + " RTT capable.");
             }
         }
     }
