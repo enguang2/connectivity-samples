@@ -151,6 +151,11 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         }
     }
 
+    public void onClickStopBackgroundScan(View view) {
+        startService(ContinuousWifiScanService.createStopIntent(this));
+        logToUi("Stopped background continuous Wi-Fi scan.");
+    }
+
     private class WifiScanResultsCallback extends WifiManager.ScanResultsCallback {
 
         private List<ScanResult> find80211mcSupportedAccessPoints(
