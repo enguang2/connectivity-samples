@@ -56,7 +56,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     private WifiManager mWifiManager;
     private WifiScanResultsCallback mWifiScanResultsCallback;
-    private FusedLocationProviderClient mFusedLocationProviderClient;
 
     private TextView mOutputTextView;
     private RecyclerView mRecyclerView;
@@ -89,7 +88,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
         mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         mWifiScanResultsCallback = new WifiScanResultsCallback();
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     @Override
@@ -120,7 +118,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                 Log.w(TAG, "Wifi scan callback was not registered.", e);
             }
         }
-        mFusedLocationProviderClient.removeLocationUpdates(mFlpScanTriggerCallback);
     }
 
     private void logToUi(final String message) {
@@ -153,19 +150,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             Intent startIntent = new Intent(this, LocationPermissionRequestActivity.class);
             startActivity(startIntent);
         }
-    }
-
-    @SuppressLint("MissingPermission")
-    private void requestFlpTriggeredScan() {
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(1L);
-        locationRequest.setFastestInterval(0L);
-        locationRequest.setNumUpdates(1);
-        locationRequest.setExpirationDuration(10000L);
-
-        mFusedLocationProviderClient.requestLocationUpdates(
-                locationRequest, mFlpScanTriggerCallback, getMainLooper());
     }
 
     private class WifiScanResultsCallback extends WifiManager.ScanResultsCallback {
