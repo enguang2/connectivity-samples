@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     long startTime;
     long endTime;
+    private boolean mContinuousScanningEnabled = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +112,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     protected void onPause() {
         Log.d(TAG, "onPause()");
         super.onPause();
+        mContinuousScanningEnabled = false;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 mWifiManager.unregisterScanResultsCallback(mWifiScanResultsCallback);
@@ -139,16 +141,23 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     public void onClickFindDistancesToAccessPoints(View view) {
         if (mLocationPermissionApproved) {
             logToUi(getString(R.string.retrieving_access_points));
+            mContinuousScanningEnabled = true;
 
-            // Start WiFi scan, log time. Results will be received in WifiScanReceiver.
-            startTime = System.currentTimeMillis();
-            Log.d(TAG, "WiFi scan started at: " + startTime);
-            mWifiManager.startScan();
+            triggerNextScan();
 
         } else {
             // On 23+ (M+) devices, fine location permission not granted. Request permission.
             Intent startIntent = new Intent(this, LocationPermissionRequestActivity.class);
             startActivity(startIntent);
+        }
+    }
+
+    private void triggerNextScan() {
+        startTime = System.currentTimeMillis();
+        Log.d(TAG, "WiFi scan started at: " + startTime);
+        boolean scanStarted = mWifiManager.startScan();
+        if (!scanStarted) {
+            Log.w(TAG, "WifiManager.startScan() returned false.");
         }
     }
 
@@ -175,6 +184,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         @Override
         @SuppressLint("MissingPermission")
         public void onScanResultsAvailable() {
+            if (!mContinuousScanningEnabled) {
+                return;
+            }
+
             // Log the time when the scan finishes
             endTime = System.currentTimeMillis();
             Log.d(TAG, "WiFi scan finished at: " + endTime);
@@ -199,6 +212,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                     // TODO (jewalker): Add Snackbar regarding permissions
                     Log.d(TAG, "Permissions not allowed.");
                 }
+            }
+
+            if (mContinuousScanningEnabled) {
+                triggerNextScan();
             }
         }
     }
