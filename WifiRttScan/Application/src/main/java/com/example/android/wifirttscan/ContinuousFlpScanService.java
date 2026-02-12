@@ -52,6 +52,7 @@ public class ContinuousFlpScanService extends Service {
     private static final String TAG = "ContinuousFlpScanSvc";
     private static final String CHANNEL_ID = "flp_scan_foreground_channel";
     private static final int NOTIFICATION_ID = 7001;
+    private static final long FLP_UPDATE_INTERVAL_MS = 30000;
 
     private WifiManager mWifiManager;
     private FusedLocationProviderClient mFusedLocationProviderClient;
@@ -92,7 +93,9 @@ public class ContinuousFlpScanService extends Service {
 
                         Log.i(
                                 TAG,
-                                "FLP_UPDATE sinceStartMs="
+                                "FLP_UPDATE time="
+                                        + now
+                                        + " sinceStartMs="
                                         + sinceStart
                                         + " sinceLastMs="
                                         + sinceLast
@@ -148,8 +151,8 @@ public class ContinuousFlpScanService extends Service {
         }
 
         LocationRequest locationRequest =
-                new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 0)
-                        .setMinUpdateIntervalMillis(0)
+                new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, FLP_UPDATE_INTERVAL_MS)
+                        .setMinUpdateIntervalMillis(FLP_UPDATE_INTERVAL_MS)
                         .setMaxUpdateDelayMillis(0)
                         .setWaitForAccurateLocation(false)
                         .setMinUpdateDistanceMeters(0)
@@ -158,7 +161,7 @@ public class ContinuousFlpScanService extends Service {
         try {
             mFusedLocationProviderClient.requestLocationUpdates(
                     locationRequest, mFlpLocationCallback, getMainLooper());
-            Log.i(TAG, "FLP request started.");
+            Log.i(TAG, "FLP request started. intervalMs=" + FLP_UPDATE_INTERVAL_MS);
         } catch (SecurityException e) {
             Log.e(TAG, "Location permission missing for FLP request.", e);
             updateNotification("Missing location permission");
@@ -257,7 +260,9 @@ public class ContinuousFlpScanService extends Service {
 
             Log.i(
                     TAG,
-                    "SCAN_CALLBACK sinceStartMs="
+                    "SCAN_CALLBACK time="
+                            + now
+                            + " sinceStartMs="
                             + sinceStart
                             + " sinceLastMs="
                             + sinceLast
