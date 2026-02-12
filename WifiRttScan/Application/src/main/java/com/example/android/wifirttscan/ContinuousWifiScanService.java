@@ -46,6 +46,7 @@ public class ContinuousWifiScanService extends Service {
     private static final String TAG = "BgWifiScanService";
     private static final String CHANNEL_ID = "wifi_scan_background";
     private static final int NOTIFICATION_ID = 6001;
+    private static final long NEXT_SCAN_DELAY_MS = 30000;
     private static final long RETRY_DELAY_MS = 5000;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -245,7 +246,7 @@ public class ContinuousWifiScanService extends Service {
                             + totalCount
                             + ", RTT "
                             + rttCount);
-            triggerNextScan();
+            mHandler.postDelayed(mRetryScanRunnable, NEXT_SCAN_DELAY_MS);
         }
     }
 }
