@@ -233,7 +233,9 @@ public class ContinuousWifiScanService extends Service {
 
             android.util.Log.i(
                     TAG,
-                    "SCAN_LOOP durationMs="
+                    "SCAN_LOOP time="
+                            + SystemClock.elapsedRealtime()
+                            + " durationMs="
                             + scanDurationMs
                             + " totalAps="
                             + totalCount
