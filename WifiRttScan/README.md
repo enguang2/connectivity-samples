@@ -13,19 +13,23 @@ Steps for trying out the sample:
 * Compile and install the mobile app onto your mobile device (for mobile scenario).
 
 This sample demonstrates best practices for using the WifiRtt APIs in Android. The main activity
-lists all access points that are WifiRtt enabled using the [WifiManager][1]. By clicking on one of
-the access points, another activity will launch and initiate [RangingRequest][2] via the
-[WifiRttManager][3]. The activity will display many of the details returned from the access point
-including the distance between the access point and the phone.
+triggers a WiFi scan using [WifiManager.startScan()][1] and receives results via the
+[WifiManager.ScanResultsCallback][4] (introduced in Android R / API 30), replacing the legacy
+`SCAN_RESULTS_AVAILABLE_ACTION` broadcast intent approach. The scan results list all access points
+that are WifiRtt (802.11mc) enabled. By clicking on one of the access points, another activity will
+launch and initiate [RangingRequest][2] via the [WifiRttManager][3]. The activity will display many
+of the details returned from the access point including the distance between the access point and
+the phone.
 
-[1]: https://developer.android.com/reference/android/net/wifi/WifiManager
+[1]: https://developer.android.com/reference/android/net/wifi/WifiManager#startScan()
 [2]: https://developer.android.com/reference/android/net/wifi/rtt/RangingRequest
 [3]: https://developer.android.com/reference/android/net/wifi/rtt/WifiRttManager
+[4]: https://developer.android.com/reference/android/net/wifi/WifiManager.ScanResultsCallback
 
 Pre-requisites
 --------------
 
-- Android SDK 28
+- Android SDK 30
 - Android Build Tools v28.0.3
 - Android Support Repository
 
