@@ -36,11 +36,6 @@ import androidx.recyclerview.widget.RecyclerView.LayoutManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 
 import com.example.android.wifirttscan.MyAdapter.ScanResultClickListener;
 
@@ -61,31 +56,14 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     private WifiManager mWifiManager;
     private WifiScanResultsCallback mWifiScanResultsCallback;
-    private FusedLocationProviderClient mFusedLocationProviderClient;
 
     private TextView mOutputTextView;
     private RecyclerView mRecyclerView;
 
     private MyAdapter mAdapter;
 
-    long scanstartTime;
-    long flpstartTime;
-    long scanendTime;
-    long flpendTime;
-
-
-    private final LocationCallback mFlpScanTriggerCallback = new LocationCallback() {
-        @Override
-        public void onLocationResult(LocationResult locationResult) {
-
-
-            flpendTime = System.currentTimeMillis();
-            Log.d(TAG, "FLP location update received at: " + flpendTime);
-            Log.d(TAG, "FLP location update duration: " + (flpendTime - flpstartTime) + " ms");
-
-            mFusedLocationProviderClient.removeLocationUpdates(this);
-        }
-    };
+    long startTime;
+    long endTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,7 +88,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
         mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         mWifiScanResultsCallback = new WifiScanResultsCallback();
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     @Override
@@ -141,7 +118,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                 Log.w(TAG, "Wifi scan callback was not registered.", e);
             }
         }
-        mFusedLocationProviderClient.removeLocationUpdates(mFlpScanTriggerCallback);
     }
 
     private void logToUi(final String message) {
@@ -164,32 +140,16 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         if (mLocationPermissionApproved) {
             logToUi(getString(R.string.retrieving_access_points));
 
-            // Trigger FLP high-accuracy request and measure time until scan broadcast arrives.
-            flpstartTime = System.currentTimeMillis();
-            Log.d(TAG, "FLP request started at: " + flpstartTime);
-
-            scanstartTime = flpstartTime;
-            Log.d(TAG, "WiFi scan started at: " + scanstartTime);
-            requestFlpTriggeredScan();
+            // Start WiFi scan, log time. Results will be received in WifiScanReceiver.
+            startTime = System.currentTimeMillis();
+            Log.d(TAG, "WiFi scan started at: " + startTime);
+            mWifiManager.startScan();
 
         } else {
             // On 23+ (M+) devices, fine location permission not granted. Request permission.
             Intent startIntent = new Intent(this, LocationPermissionRequestActivity.class);
             startActivity(startIntent);
         }
-    }
-
-    @SuppressLint("MissingPermission")
-    private void requestFlpTriggeredScan() {
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(1L);
-        locationRequest.setFastestInterval(0L);
-        locationRequest.setNumUpdates(1);
-        locationRequest.setExpirationDuration(10000L);
-
-        mFusedLocationProviderClient.requestLocationUpdates(
-                locationRequest, mFlpScanTriggerCallback, getMainLooper());
     }
 
     private class WifiScanResultsCallback extends WifiManager.ScanResultsCallback {
@@ -216,9 +176,9 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         @SuppressLint("MissingPermission")
         public void onScanResultsAvailable() {
             // Log the time when the scan finishes
-            scanendTime = System.currentTimeMillis();
-            Log.d(TAG, "WiFi scan finished at: " + scanendTime);
-            Log.d(TAG, "WiFi scan duration: " + (scanendTime - scanstartTime) + " ms");
+            endTime = System.currentTimeMillis();
+            Log.d(TAG, "WiFi scan finished at: " + endTime);
+            Log.d(TAG, "WiFi scan duration: " + (endTime - startTime) + " ms");
 
             List<ScanResult> scanResults = mWifiManager.getScanResults();
 
