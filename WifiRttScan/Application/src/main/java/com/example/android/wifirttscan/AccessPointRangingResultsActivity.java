@@ -15,6 +15,7 @@
  */
 package com.example.android.wifirttscan;
 
+import android.net.MacAddress;
 import android.Manifest;
 import android.Manifest.permission;
 import android.content.Context;
@@ -22,6 +23,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.rtt.RangingRequest;
+import android.net.wifi.rtt.ResponderConfig;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.RangingResultCallback;
 import android.net.wifi.rtt.WifiRttManager;
@@ -194,9 +196,29 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
         mNumberOfRangeRequests++;
 
-        RangingRequest rangingRequest =
-                new RangingRequest.Builder().addAccessPoint(mScanResult).build();
 
+        // Deprecated, hardcode IllinoisNet to forcibly use 2-side RTT.
+        // RangingRequest rangingRequest =
+        //         new RangingRequest.Builder().addAccessPoint(mScanResult).build();
+
+        // Step 1: Let fromScanResult handle all the complex field extraction
+        ResponderConfig original = ResponderConfig.fromScanResult(mScanResult);
+
+        // Step 2: Rebuild via Builder, copying all public getters, overriding only the mc flag
+        ResponderConfig modified = new ResponderConfig.Builder()
+            .setMacAddress(original.getMacAddress())
+            .set80211mcSupported(true)   // Manually set 802.11mc to true to force 2-side RTT, even if the device doesn't advertise it in the scan result (e.g., IllinoisNet).
+            .setChannelWidth(original.getChannelWidth())
+            .setFrequencyMhz(original.getFrequencyMhz())
+            .setCenterFreq0Mhz(original.getCenterFreq0Mhz())
+            .setCenterFreq1Mhz(original.getCenterFreq1Mhz())
+            .setPreamble(original.getPreamble())
+            .build();
+
+        // Step 3: Build the RangingRequest with the modified ResponderConfig
+        RangingRequest rangingRequest = new RangingRequest.Builder().addResponder(modified).build();
+
+    
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRttRangingResultCallback);
     }

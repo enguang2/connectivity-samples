@@ -195,7 +195,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
             if (scanResults != null) {
                 if (mPermissionApproved) {
-                    mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
+                    mAccessPointsSupporting80211mc = scanResults;
+
+                    // Deprecated, show all APs.
+                    // mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
 
                     mAdapter.swapData(mAccessPointsSupporting80211mc);
 
