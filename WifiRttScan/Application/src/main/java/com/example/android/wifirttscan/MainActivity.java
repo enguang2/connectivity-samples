@@ -17,6 +17,7 @@ package com.example.android.wifirttscan;
 
 import static com.example.android.wifirttscan.AccessPointRangingResultsActivity.SCAN_RESULT_EXTRA;
 
+import android.Manifest;
 import android.Manifest.permission;
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -43,14 +44,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Displays list of Access Points enabled with WifiRTT (to check distance). Requests location
- * permissions if they are not approved via secondary splash screen explaining why they are needed.
+ * Displays list of Access Points enabled with WifiRTT (to check distance). Requests permissions
+ * if they are not approved via secondary splash screen explaining why they are needed.
  */
 public class MainActivity extends AppCompatActivity implements ScanResultClickListener {
 
     private static final String TAG = "MainActivity";
 
-    private boolean mLocationPermissionApproved = false;
+    private boolean mPermissionApproved = false;
 
     List<ScanResult> mAccessPointsSupporting80211mc;
 
@@ -95,15 +96,23 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         Log.d(TAG, "onResume()");
         super.onResume();
 
-        mLocationPermissionApproved =
-                ActivityCompat.checkSelfPermission(this, permission.ACCESS_FINE_LOCATION)
-                        == PackageManager.PERMISSION_GRANTED;
+        mPermissionApproved = isPermissionGranted();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             mWifiManager.registerScanResultsCallback(getMainExecutor(), mWifiScanResultsCallback);
             Log.d(TAG, "Registered WifiManager.ScanResultsCallback");
         } else {
             logToUi("Scan results callback requires Android 11+ (API 30).");
+        }
+    }
+
+    private boolean isPermissionGranted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return ActivityCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES)
+                    == PackageManager.PERMISSION_GRANTED;
+        } else {
+            return ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED;
         }
     }
 
@@ -137,16 +146,19 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     }
 
     public void onClickScanForAccessPoints(View view) {
-        if (mLocationPermissionApproved) {
+        if (mPermissionApproved) {
             logToUi(getString(R.string.retrieving_access_points));
 
-            // Start WiFi scan, log time. Results will be received in WifiScanReceiver.
+            // Start WiFi scan, log time. Results will be received in WifiScanResultsCallback.
             startTime = System.currentTimeMillis();
             Log.d(TAG, "WiFi scan started at: " + startTime);
-            mWifiManager.startScan();
+            boolean success = mWifiManager.startScan();
+            if (!success) {
+                logToUi("WiFi scan failed to start (throttled?).");
+            }
 
         } else {
-            // On 23+ (M+) devices, fine location permission not granted. Request permission.
+            // Permission not granted. Request permission.
             Intent startIntent = new Intent(this, LocationPermissionRequestActivity.class);
             startActivity(startIntent);
         }
@@ -159,7 +171,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             List<ScanResult> newList = new ArrayList<>();
 
             for (ScanResult scanResult : originalList) {
-
                 if (scanResult.is80211mcResponder()) {
                     newList.add(scanResult);
                 }
@@ -172,7 +183,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             return newList;
         }
 
-        // This is checked via mLocationPermissionApproved boolean
         @Override
         @SuppressLint("MissingPermission")
         public void onScanResultsAvailable() {
@@ -184,8 +194,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             List<ScanResult> scanResults = mWifiManager.getScanResults();
 
             if (scanResults != null) {
-
-                if (mLocationPermissionApproved) {
+                if (mPermissionApproved) {
                     mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
 
                     mAdapter.swapData(mAccessPointsSupporting80211mc);
