@@ -164,9 +164,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                     newList.add(scanResult);
                 }
 
-                if (newList.size() >= RangingRequest.getMaxPeers()) {
-                    break;
-                }
+                // Show all RTT enabled APs.
+                // if (newList.size() >= RangingRequest.getMaxPeers()) {
+                //     break;
+                // }
             }
             return newList;
         }
