@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         startActivity(intent);
     }
 
-    public void onClickFindDistancesToAccessPoints(View view) {
+    public void onClickScanForAccessPoints(View view) {
         if (mLocationPermissionApproved) {
             logToUi(getString(R.string.retrieving_access_points));
 
