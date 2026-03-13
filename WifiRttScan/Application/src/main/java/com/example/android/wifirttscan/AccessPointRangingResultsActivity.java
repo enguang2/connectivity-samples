@@ -137,7 +137,8 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
         mSsidTextView.setText(mScanResult.SSID);
         mBssidTextView.setText(mScanResult.BSSID);
-
+        
+        // TODO: @Enguang use Application context instead of Activity context.
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
 
