@@ -37,6 +37,8 @@ import androidx.recyclerview.widget.RecyclerView.LayoutManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import java.util.Collections;
+
 
 import com.example.android.wifirttscan.MyAdapter.ScanResultClickListener;
 
@@ -183,6 +185,25 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             return newList;
         }
 
+        public void preprocess(List<ScanResult> list) {
+            // Sort the scanned AP list by signal strength.
+            Collections.sort(list, (a, b) -> Integer.compare(b.level, a.level));
+
+            // Filter by channel bandwidth, only keeps the 80MHz channels.
+            list.removeIf(scan ->
+                    scan.channelWidth != ScanResult.CHANNEL_WIDTH_80MHZ ||
+                            !"\"IllinoisNet\"".equals(scan.getWifiSsid().toString())
+            );
+
+            // logcat to show ssid
+            for (ScanResult scan : list) {
+                Log.d(TAG, "SSID: " + scan.getWifiSsid().toString() + " MAC " + scan.BSSID + " RSSI " + scan.level);
+            }
+//            list.removeIf(scan ->
+//                    !"\"IllinoisNet\"".equals(scan.getWifiSsid().toString())
+//            );
+        }
+
         @Override
         @SuppressLint("MissingPermission")
         public void onScanResultsAvailable() {
@@ -199,7 +220,14 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
                     // Deprecated, show all APs.
                     // mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
+                    // In onScanResultsAvailable(), replace the direct assignment with:
+                    List<ScanResult> sortedBySignal = new ArrayList<>(mAccessPointsSupporting80211mc);
+                    // Higher RSSI (less negative dBm) first: -40 before -70
+                    preprocess(sortedBySignal);
 
+
+
+                    mAccessPointsSupporting80211mc = sortedBySignal;
                     mAdapter.swapData(mAccessPointsSupporting80211mc);
 
                     logToUi(
