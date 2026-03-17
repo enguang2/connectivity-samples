@@ -44,7 +44,7 @@ import java.util.List;
 
 /**
  * Displays ranging information about a particular access point chosen by the user. Uses {@link
- * Handler} to trigger new requests based on
+ * Handler} to trigger new requests based on a configurable delay.
  */
 public class AccessPointRangingResultsActivity extends AppCompatActivity {
     private static final String TAG = "APRRActivity";
@@ -80,6 +80,9 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
     private int mMillisecondsDelayBeforeNewRangingRequest;
 
+    // Flag to track if the ranging loop should be running.
+    private boolean mIsActive = false;
+
     // Max sample size to calculate average for
     // 1. Distance to device (getDistanceMm) over time
     // 2. Standard deviation of the measured distance to the device (getDistanceStdDevMm) over time
@@ -92,15 +95,15 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     private int mStatisticRangeHistoryEndIndex;
     private ArrayList<Integer> mStatisticRangeHistory;
 
-    // Used to loop over a list of the standard deviation of the measured distance to calculate
-    // averages  (ensures data structure never get larger than sample size).
+    // Used to loop over a list of standard deviations to calculate averages.
     private int mStatisticRangeSDHistoryEndIndex;
     private ArrayList<Integer> mStatisticRangeSDHistory;
 
     private WifiRttManager mWifiRttManager;
     private RttRangingResultCallback mRttRangingResultCallback;
 
-    // Triggers additional RangingRequests with delay (mMillisecondsDelayBeforeNewRangingRequest).
+    // Triggers additional RangingRequests with delay.
+    // TODO: @Enguang, this handler constructer is deprecated, need to specify which looper.
     final Handler mRangeRequestDelayHandler = new Handler();
 
     @Override
@@ -153,8 +156,36 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
         mStatisticRangeSDHistory = new ArrayList<>();
 
         resetData();
+    }
 
+    @Override
+    protected void onResume() {
+        Log.d(TAG, "onResume()");
+        super.onResume();
+        mIsActive = true;
         startRangingRequest();
+    }
+
+    @Override
+    protected void onPause() {
+        Log.d(TAG, "onPause(): stop ranging loop.");
+        super.onPause();
+        mIsActive = false;
+        mRangeRequestDelayHandler.removeCallbacksAndMessages(null);
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "onStop()");
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, "onDestroy()");
+        super.onDestroy();
+        mIsActive = false;
+        mRangeRequestDelayHandler.removeCallbacksAndMessages(null);
     }
 
     private void resetData() {
@@ -179,7 +210,11 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     }
 
     private void startRangingRequest() {
-        // Permission check for Android 13+ (Nearby devices) or below (Location)
+        if (!mIsActive) {
+            return;
+        }
+
+        // Permission check
         boolean permissionGranted;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionGranted = ActivityCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES)
@@ -190,35 +225,29 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
         }
 
         if (!permissionGranted) {
-            finish();
+            Log.w(TAG, "Permissions not granted for ranging.");
             return;
         }
 
         mNumberOfRangeRequests++;
 
-
-        // Deprecated, hardcode IllinoisNet to forcibly use 2-side RTT.
-        // RangingRequest rangingRequest =
-        //         new RangingRequest.Builder().addAccessPoint(mScanResult).build();
-
-        // Step 1: Let fromScanResult handle all the complex field extraction
+        // Rebuild via Builder to force 802.11mc support if needed.
         ResponderConfig original = ResponderConfig.fromScanResult(mScanResult);
 
         // Step 2: Rebuild via Builder, copying all public getters, overriding only the mc flag
         ResponderConfig modified = new ResponderConfig.Builder()
-            .setMacAddress(original.getMacAddress())
-            .set80211mcSupported(true)   // Manually set 802.11mc to true to force 2-side RTT, even if the device doesn't advertise it in the scan result (e.g., IllinoisNet).
-            .setChannelWidth(original.getChannelWidth())
-            .setFrequencyMhz(original.getFrequencyMhz())
-            .setCenterFreq0Mhz(original.getCenterFreq0Mhz())
-            .setCenterFreq1Mhz(original.getCenterFreq1Mhz())
-            .setPreamble(original.getPreamble())
-            .build();
+                .setMacAddress(original.getMacAddress())
+                .set80211mcSupported(true)
+                .setChannelWidth(original.getChannelWidth())
+                .setFrequencyMhz(original.getFrequencyMhz())
+                .setCenterFreq0Mhz(original.getCenterFreq0Mhz())
+                .setCenterFreq1Mhz(original.getCenterFreq1Mhz())
+                .setPreamble(original.getPreamble())
+                .build();
 
         // Step 3: Build the RangingRequest with the modified ResponderConfig
         RangingRequest rangingRequest = new RangingRequest.Builder().addResponder(modified).build();
 
-    
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRttRangingResultCallback);
     }
@@ -227,27 +256,21 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     private float getDistanceMean() {
         if (mStatisticRangeHistory.isEmpty()) return 0;
         float distanceSum = 0;
-
         for (int distance : mStatisticRangeHistory) {
             distanceSum += distance;
         }
-
         return distanceSum / mStatisticRangeHistory.size();
     }
 
     // Adds distance to history. If larger than sample size value, loops back over and replaces the
     // oldest distance record in the list.
     private void addDistanceToHistory(int distance) {
-
         if (mStatisticRangeHistory.size() >= mSampleSize) {
-
             if (mStatisticRangeHistoryEndIndex >= mSampleSize) {
                 mStatisticRangeHistoryEndIndex = 0;
             }
-
             mStatisticRangeHistory.set(mStatisticRangeHistoryEndIndex, distance);
             mStatisticRangeHistoryEndIndex++;
-
         } else {
             mStatisticRangeHistory.add(distance);
         }
@@ -257,27 +280,21 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     private float getStandardDeviationOfDistanceMean() {
         if (mStatisticRangeSDHistory.isEmpty()) return 0;
         float distanceSdSum = 0;
-
         for (int distanceSd : mStatisticRangeSDHistory) {
             distanceSdSum += distanceSd;
         }
-
         return distanceSdSum / mStatisticRangeSDHistory.size();
     }
 
     // Adds standard deviation of the measured distance to history. If larger than sample size
     // value, loops back over and replaces the oldest distance record in the list.
     private void addStandardDeviationOfDistanceToHistory(int distanceSd) {
-
         if (mStatisticRangeSDHistory.size() >= mSampleSize) {
-
             if (mStatisticRangeSDHistoryEndIndex >= mSampleSize) {
                 mStatisticRangeSDHistoryEndIndex = 0;
             }
-
             mStatisticRangeSDHistory.set(mStatisticRangeSDHistoryEndIndex, distanceSd);
             mStatisticRangeSDHistoryEndIndex++;
-
         } else {
             mStatisticRangeSDHistory.add(distanceSd);
         }
@@ -291,49 +308,44 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     private class RttRangingResultCallback extends RangingResultCallback {
 
         private void queueNextRangingRequest() {
+            if (!mIsActive) {
+                return;
+            }
             mRangeRequestDelayHandler.postDelayed(
-                    this::startRangingRequest,
+                    () -> AccessPointRangingResultsActivity.this.startRangingRequest(),
                     mMillisecondsDelayBeforeNewRangingRequest);
-        }
-
-        private void startRangingRequest() {
-            AccessPointRangingResultsActivity.this.startRangingRequest();
         }
 
         @Override
         public void onRangingFailure(int code) {
+            if (!mIsActive) {
+                return;
+            }
             Log.d(TAG, "onRangingFailure() code: " + code);
             queueNextRangingRequest();
         }
 
         @Override
         public void onRangingResults(@NonNull List<RangingResult> list) {
+            if (!mIsActive) {
+                return;
+            }
             Log.d(TAG, "onRangingResults(): " + list);
 
             // Because we are only requesting RangingResult for one access point (not multiple
             // access points), this will only ever be one. (Use loops when requesting RangingResults
             // for multiple access points.)
             if (list.size() == 1) {
-
                 RangingResult rangingResult = list.get(0);
-
                 if (mMAC.equals(rangingResult.getMacAddress().toString())) {
-
                     if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
-
                         mNumberOfSuccessfulRangeRequests++;
-
                         mRangeTextView.setText(String.valueOf(rangingResult.getDistanceMm() / 1000f));
                         addDistanceToHistory(rangingResult.getDistanceMm());
                         mRangeMeanTextView.setText(String.valueOf(getDistanceMean() / 1000f));
-
-                        mRangeSDTextView.setText(
-                                String.valueOf(rangingResult.getDistanceStdDevMm() / 1000f));
-                        addStandardDeviationOfDistanceToHistory(
-                                rangingResult.getDistanceStdDevMm());
-                        mRangeSDMeanTextView.setText(
-                                String.valueOf(getStandardDeviationOfDistanceMean() / 1000f));
-
+                        mRangeSDTextView.setText(String.valueOf(rangingResult.getDistanceStdDevMm() / 1000f));
+                        addStandardDeviationOfDistanceToHistory(rangingResult.getDistanceStdDevMm());
+                        mRangeSDMeanTextView.setText(String.valueOf(getStandardDeviationOfDistanceMean() / 1000f));
                         mRssiTextView.setText(String.valueOf(rangingResult.getRssi()));
                         mSuccessesInBurstTextView.setText(
                                 rangingResult.getNumSuccessfulMeasurements()
@@ -343,7 +355,6 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
                         float successRatio = ((float) mNumberOfSuccessfulRangeRequests / (float) mNumberOfRangeRequests) * 100;
                         mSuccessRatioTextView.setText(String.format("%.2f%%", successRatio));
                         mNumberOfRequestsTextView.setText(String.valueOf(mNumberOfRangeRequests));
-
                     } else {
                         Log.d(TAG, "RangingResult failed with status: " + rangingResult.getStatus());
                     }

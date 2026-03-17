@@ -131,6 +131,18 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         }
     }
 
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "onStop()");
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, "onDestroy()");
+        super.onDestroy();
+    }
+
     private void logToUi(final String message) {
         if (!message.isEmpty()) {
             Log.d(TAG, message);
