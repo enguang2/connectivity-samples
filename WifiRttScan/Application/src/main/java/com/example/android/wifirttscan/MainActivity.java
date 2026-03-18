@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate()");
         setContentView(R.layout.activity_main);
 
         mOutputTextView = findViewById(R.id.access_point_summary_text_view);
