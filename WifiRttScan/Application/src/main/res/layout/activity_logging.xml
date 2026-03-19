@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".LoggingActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/activity_access_point_ranging_request_margin_start"
+        android:paddingTop="@dimen/activity_access_point_ranging_request_margin_top_title"
+        android:paddingEnd="@dimen/activity_access_point_ranging_request_margin_end"
+        android:paddingBottom="@dimen/activity_access_point_ranging_request_margin_top_divider">
+
+        <TextView
+            android:id="@+id/logging_ssid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textAlignment="center"
+            android:textSize="@dimen/activity_access_point_ranging_request_header_text_size"
+            tools:text="SSID" />
+
+        <TextView
+            android:id="@+id/logging_bssid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:gravity="center"
+            android:textAlignment="center"
+            android:textSize="@dimen/activity_access_point_ranging_request_header_text_size"
+            tools:text="BSSID" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_divider_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:background="?android:attr/listDivider" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_estimated_range_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <TextView
+            android:id="@+id/estimated_range_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:text="@string/logging_not_available"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="3.24" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_state_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <TextView
+            android:id="@+id/logging_state_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:text="@string/logging_state_no_session"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_current_file_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <TextView
+            android:id="@+id/logging_file_path_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:maxLines="4"
+            android:text="@string/logging_no_active_session"
+            android:textIsSelectable="true"
+            android:textSize="16sp"
+            tools:text="/data/user/0/com.example.android.wifirttscan/files/ranging_logs/demo.csv" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_true_range_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <EditText
+            android:id="@+id/true_range_edit_value"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:singleLine="true"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="4.00" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/use_timer_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_use_timer_label" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_timer_interval_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <EditText
+            android:id="@+id/timer_interval_edit_value"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:singleLine="true"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="300" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_ranging_interval_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <EditText
+            android:id="@+id/logging_ranging_interval_edit_value"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:singleLine="true"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="1000" />
+
+        <Button
+            android:id="@+id/new_session_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:onClick="onNewSessionClick"
+            android:text="@string/logging_new_session_button_label" />
+
+        <Button
+            android:id="@+id/start_logging_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:onClick="onStartLoggingClick"
+            android:text="@string/logging_start_button_label" />
+
+        <Button
+            android:id="@+id/stop_logging_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:onClick="onStopLoggingClick"
+            android:text="@string/logging_stop_button_label" />
+
+        <Button
+            android:id="@+id/share_file_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:enabled="false"
+            android:onClick="onShareFileClick"
+            android:text="@string/logging_share_file_button_label" />
+    </LinearLayout>
+</ScrollView>

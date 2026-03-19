@@ -15,29 +15,23 @@
  */
 package com.example.android.wifirttscan;
 
-import android.net.MacAddress;
-import android.Manifest;
-import android.Manifest.permission;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.rtt.RangingRequest;
-import android.net.wifi.rtt.ResponderConfig;
 import android.net.wifi.rtt.RangingResult;
 import android.net.wifi.rtt.RangingResultCallback;
 import android.net.wifi.rtt.WifiRttManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
+import android.os.Looper;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.NonNull;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -103,8 +97,7 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     private RttRangingResultCallback mRttRangingResultCallback;
 
     // Triggers additional RangingRequests with delay.
-    // TODO: @Enguang, this handler constructer is deprecated, need to specify which looper.
-    final Handler mRangeRequestDelayHandler = new Handler();
+    final Handler mRangeRequestDelayHandler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -214,39 +207,13 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
             return;
         }
 
-        // Permission check
-        boolean permissionGranted;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissionGranted = ActivityCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES)
-                    == PackageManager.PERMISSION_GRANTED;
-        } else {
-            permissionGranted = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                    == PackageManager.PERMISSION_GRANTED;
-        }
-
-        if (!permissionGranted) {
+        if (!WifiRttUtils.hasRangingPermission(this)) {
             Log.w(TAG, "Permissions not granted for ranging.");
             return;
         }
 
         mNumberOfRangeRequests++;
-
-        // Rebuild via Builder to force 802.11mc support if needed.
-        ResponderConfig original = ResponderConfig.fromScanResult(mScanResult);
-
-        // Step 2: Rebuild via Builder, copying all public getters, overriding only the mc flag
-        ResponderConfig modified = new ResponderConfig.Builder()
-                .setMacAddress(original.getMacAddress())
-                .set80211mcSupported(true)
-                .setChannelWidth(original.getChannelWidth())
-                .setFrequencyMhz(original.getFrequencyMhz())
-                .setCenterFreq0Mhz(original.getCenterFreq0Mhz())
-                .setCenterFreq1Mhz(original.getCenterFreq1Mhz())
-                .setPreamble(original.getPreamble())
-                .build();
-
-        // Step 3: Build the RangingRequest with the modified ResponderConfig
-        RangingRequest rangingRequest = new RangingRequest.Builder().addResponder(modified).build();
+        RangingRequest rangingRequest = WifiRttUtils.buildSingleAccessPointRequest(mScanResult);
 
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRttRangingResultCallback);
@@ -302,6 +269,12 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
     public void onResetButtonClick(View view) {
         resetData();
+    }
+
+    public void onLoggingButtonClick(View view) {
+        Intent intent = new Intent(this, LoggingActivity.class);
+        intent.putExtra(SCAN_RESULT_EXTRA, mScanResult);
+        startActivity(intent);
     }
 
     // Class that handles callbacks for all RangingRequests and issues new RangingRequests.

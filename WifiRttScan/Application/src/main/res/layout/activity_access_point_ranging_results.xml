@@ -335,17 +335,32 @@
         app:layout_constraintTop_toBottomOf="@+id/stats_window_size_edit_value"
         tools:text="1000" />
 
-    <Button
-        android:id="@+id/reset_button"
+    <LinearLayout
+        android:id="@+id/bottom_actions"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="@dimen/activity_access_point_ranging_request_margin_end"
         android:layout_marginStart="@dimen/activity_access_point_ranging_request_margin_start"
-        android:onClick="onResetButtonClick"
-        android:text="@string/reset_label_activity_access_point_ranging_results"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <Button
+            android:id="@+id/logging_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:onClick="onLoggingButtonClick"
+            android:text="@string/logging_label_activity_access_point_ranging_results" />
+
+        <Button
+            android:id="@+id/reset_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:onClick="onResetButtonClick"
+            android:text="@string/reset_label_activity_access_point_ranging_results" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

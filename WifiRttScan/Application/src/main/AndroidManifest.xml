@@ -63,5 +63,13 @@
             android:theme="@style/CustomAppTheme"
             android:exported="false">
         </activity>
+
+        <activity
+            android:name=".LoggingActivity"
+            android:label="@string/title_activity_logging"
+            android:parentActivityName=".AccessPointRangingResultsActivity"
+            android:theme="@style/CustomAppTheme"
+            android:exported="false">
+        </activity>
     </application>
 </manifest>

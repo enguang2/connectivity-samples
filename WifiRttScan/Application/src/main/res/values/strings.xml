@@ -41,7 +41,41 @@
     <string name="ranging_period_label_activity_access_point_ranging_results">Ranging period (ms):</string>
 
     <string name="reset_label_activity_access_point_ranging_results">Reset Ranging Requests</string>
+    <string name="logging_label_activity_access_point_ranging_results">Logging</string>
     <string name="number_of_requests_label_activity_access_point_ranging_results">Number of requests:</string>
     <string name="mac_mismatch_message_activity_access_point_ranging_results">Callback MAC address doesn\'t match original request MAC address.</string>
+
+    <!-- Strings for LoggingActivity. -->
+    <string name="title_activity_logging">Logging</string>
+    <string name="logging_estimated_range_label">Latest estimated range (m)</string>
+    <string name="logging_state_label">Logging state</string>
+    <string name="logging_state_no_session">No session</string>
+    <string name="logging_state_session_ready">Session ready</string>
+    <string name="logging_state_logging">Logging</string>
+    <string name="logging_current_file_label">Session file</string>
+    <string name="logging_no_active_session">No active session</string>
+    <string name="logging_true_range_label">True range (m)</string>
+    <string name="logging_use_timer_label">Use timer to auto-stop logging</string>
+    <string name="logging_timer_interval_label">Total logging timer (s)</string>
+    <string name="logging_ranging_interval_label">Ranging interval (ms)</string>
+    <string name="logging_new_session_button_label">New Session</string>
+    <string name="logging_start_button_label">Start</string>
+    <string name="logging_stop_button_label">Stop</string>
+    <string name="logging_share_file_button_label">Share File</string>
+    <string name="logging_not_available">N/A</string>
+    <string name="logging_missing_scan_result">Failed to retrieve ScanResult from Intent.</string>
+    <string name="logging_session_created">Created a new logging session.</string>
+    <string name="logging_create_session_first">Create a new session first.</string>
+    <string name="logging_permission_required">Wi-Fi RTT permission is required for logging.</string>
+    <string name="logging_session_create_failed">Failed to create logging session.</string>
+    <string name="logging_timer_elapsed">Logging stopped after the timer elapsed.</string>
+    <string name="logging_true_range_error">Enter a true range greater than or equal to 0.</string>
+    <string name="logging_timer_interval_error">Enter a timer interval greater than 0 seconds.</string>
+    <string name="logging_ranging_interval_error">Enter a ranging interval greater than 0 milliseconds.</string>
+    <string name="logging_write_failed">Failed to write a ranging result to the log file.</string>
+    <string name="logging_rtt_unavailable">Wi-Fi RTT is unavailable on this device.</string>
+    <string name="logging_no_results_to_share">Log some ranging results before sharing the file.</string>
+    <string name="logging_share_file_success">Log file exported.</string>
+    <string name="logging_share_file_failed">Failed to export the log file.</string>
 
 </resources>
