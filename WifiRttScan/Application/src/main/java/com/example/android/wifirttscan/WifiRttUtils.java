@@ -10,6 +10,9 @@ import android.os.Build;
 
 import androidx.core.content.ContextCompat;
 
+import java.util.Collections;
+import java.util.List;
+
 final class WifiRttUtils {
 
     private WifiRttUtils() {
@@ -25,8 +28,20 @@ final class WifiRttUtils {
     }
 
     static RangingRequest buildSingleAccessPointRequest(ScanResult scanResult) {
+        return buildAccessPointRequest(Collections.singletonList(scanResult));
+    }
+
+    static RangingRequest buildAccessPointRequest(List<ScanResult> scanResults) {
+        RangingRequest.Builder builder = new RangingRequest.Builder();
+        for (ScanResult scanResult : scanResults) {
+            builder.addResponder(buildResponderConfig(scanResult));
+        }
+        return builder.build();
+    }
+
+    private static ResponderConfig buildResponderConfig(ScanResult scanResult) {
         ResponderConfig original = ResponderConfig.fromScanResult(scanResult);
-        ResponderConfig modified = new ResponderConfig.Builder()
+        return new ResponderConfig.Builder()
                 .setMacAddress(original.getMacAddress())
                 .set80211mcSupported(true)
                 .setChannelWidth(original.getChannelWidth())
@@ -35,7 +50,5 @@ final class WifiRttUtils {
                 .setCenterFreq1Mhz(original.getCenterFreq1Mhz())
                 .setPreamble(original.getPreamble())
                 .build();
-
-        return new RangingRequest.Builder().addResponder(modified).build();
     }
 }

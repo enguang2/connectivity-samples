@@ -1,6 +1,7 @@
 package com.example.android.wifirttscan;
 
 import static com.example.android.wifirttscan.AccessPointRangingResultsActivity.SCAN_RESULT_EXTRA;
+import static com.example.android.wifirttscan.AccessPointRangingResultsActivity.TOP_RANGING_SCAN_RESULTS_EXTRA;
 
 import android.content.Context;
 import android.content.Intent;
@@ -30,12 +31,17 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class LoggingActivity extends AppCompatActivity {
     private static final String TAG = "LoggingActivity";
+    private static final int MAX_LOGGING_AP_COUNT = 8;
     private static final float TRUE_RANGE_METERS_DEFAULT = 0f;
     private static final int TIMER_INTERVAL_SECONDS_DEFAULT = 300;
     private static final int RANGING_INTERVAL_MS_DEFAULT = 1000;
@@ -69,6 +75,8 @@ public class LoggingActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> mShareFileLauncher;
 
     private ScanResult mScanResult;
+    private ArrayList<ScanResult> mLoggingScanResults;
+    private Map<String, ScanResult> mScanResultsByBssid;
     private String mMac;
     private WifiRttManager mWifiRttManager;
     private LoggingRangingResultCallback mRangingResultCallback;
@@ -96,6 +104,12 @@ public class LoggingActivity extends AppCompatActivity {
         }
 
         mMac = mScanResult.BSSID;
+        mLoggingScanResults = getLoggingScanResults(intent, mScanResult);
+        mScanResultsByBssid = new HashMap<>();
+        for (ScanResult scanResult : mLoggingScanResults) {
+            mScanResultsByBssid.put(scanResult.BSSID, scanResult);
+        }
+
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRangingResultCallback = new LoggingRangingResultCallback();
 
@@ -344,6 +358,34 @@ public class LoggingActivity extends AppCompatActivity {
         mTimerIntervalEditText.setAlpha(enabled ? 1f : 0.5f);
     }
 
+    private ArrayList<ScanResult> getLoggingScanResults(Intent intent, ScanResult fallbackScanResult) {
+        ArrayList<ScanResult> passedScanResults =
+                intent.getParcelableArrayListExtra(TOP_RANGING_SCAN_RESULTS_EXTRA);
+        ArrayList<ScanResult> loggingScanResults = new ArrayList<>();
+        HashSet<String> seenBssids = new HashSet<>();
+
+        if (passedScanResults != null) {
+            for (ScanResult scanResult : passedScanResults) {
+                if (scanResult == null || scanResult.BSSID == null
+                        || seenBssids.contains(scanResult.BSSID)) {
+                    continue;
+                }
+
+                loggingScanResults.add(scanResult);
+                seenBssids.add(scanResult.BSSID);
+                if (loggingScanResults.size() >= MAX_LOGGING_AP_COUNT) {
+                    break;
+                }
+            }
+        }
+
+        if (loggingScanResults.isEmpty()) {
+            loggingScanResults.add(fallbackScanResult);
+        }
+
+        return loggingScanResults;
+    }
+
     private void startRangingRequest() {
         if (!mIsLogging) {
             return;
@@ -356,7 +398,7 @@ public class LoggingActivity extends AppCompatActivity {
             return;
         }
 
-        RangingRequest rangingRequest = WifiRttUtils.buildSingleAccessPointRequest(mScanResult);
+        RangingRequest rangingRequest = WifiRttUtils.buildAccessPointRequest(mLoggingScanResults);
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRangingResultCallback);
     }
@@ -375,17 +417,20 @@ public class LoggingActivity extends AppCompatActivity {
                 mRangingIntervalMillis);
     }
 
-    private void handleRangingResult(RangingResult rangingResult) {
+    private void handleRangingResult(ScanResult scanResult, RangingResult rangingResult) {
         Log.d(TAG, "handleRangingResult(): " + rangingResult);
 
         if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
-            mEstimatedRangeTextView.setText(formatDistance(rangingResult.getDistanceMm() / 1000f));
+            if (mMac.equals(scanResult.BSSID)) {
+                mEstimatedRangeTextView.setText(
+                        formatDistance(rangingResult.getDistanceMm() / 1000f));
+            }
         } else {
             Log.d(TAG, "RangingResult failed with status: " + rangingResult.getStatus());
         }
 
         try {
-            LoggingSession.addRangingResult(mScanResult, rangingResult);
+            LoggingSession.addRangingResult(scanResult, rangingResult);
         } catch (IOException e) {
             Log.e(TAG, "Failed to write ranging result to file.", e);
             Toast.makeText(this, R.string.logging_write_failed, Toast.LENGTH_SHORT).show();
@@ -459,16 +504,20 @@ public class LoggingActivity extends AppCompatActivity {
                 return;
             }
 
-            if (list.size() == 1) {
-                RangingResult rangingResult = list.get(0);
-                if (rangingResult.getMacAddress() != null
-                        && mMac.equals(rangingResult.getMacAddress().toString())) {
-                    handleRangingResult(rangingResult);
-                } else {
-                    Log.w(TAG, "Ignoring unexpected MAC address in logging callback.");
+            for (RangingResult rangingResult : list) {
+                if (rangingResult.getMacAddress() == null) {
+                    Log.w(TAG, "Ignoring malformed ranging result without MAC address.");
+                    continue;
                 }
-            } else {
-                Log.w(TAG, "Unexpected number of ranging results: " + list.size());
+
+                ScanResult matchingScanResult =
+                        mScanResultsByBssid.get(rangingResult.getMacAddress().toString());
+                if (matchingScanResult == null) {
+                    Log.w(TAG, "Ignoring unexpected MAC address in logging callback.");
+                    continue;
+                }
+
+                handleRangingResult(matchingScanResult, rangingResult);
             }
 
             queueNextRangingRequest();

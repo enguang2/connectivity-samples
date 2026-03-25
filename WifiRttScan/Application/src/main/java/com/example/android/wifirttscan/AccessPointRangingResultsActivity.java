@@ -45,6 +45,8 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
     public static final String SCAN_RESULT_EXTRA =
             "com.example.android.wifirttscan.extra.SCAN_RESULT";
+    public static final String TOP_RANGING_SCAN_RESULTS_EXTRA =
+            "com.example.android.wifirttscan.extra.TOP_RANGING_SCAN_RESULTS";
 
     private static final int SAMPLE_SIZE_DEFAULT = 50;
     private static final int MILLISECONDS_DELAY_BEFORE_NEW_RANGING_REQUEST_DEFAULT = 1000;
@@ -67,6 +69,7 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
     // Non UI variables.
     private ScanResult mScanResult;
+    private ArrayList<ScanResult> mTopRangingScanResults;
     private String mMAC;
 
     private int mNumberOfRangeRequests;
@@ -128,10 +131,16 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
         // Retrieve ScanResult from Intent.
         Intent intent = getIntent();
         mScanResult = intent.getParcelableExtra(SCAN_RESULT_EXTRA);
+        mTopRangingScanResults = intent.getParcelableArrayListExtra(TOP_RANGING_SCAN_RESULTS_EXTRA);
 
         if (mScanResult == null) {
             finish();
             return;
+        }
+
+        if (mTopRangingScanResults == null || mTopRangingScanResults.isEmpty()) {
+            mTopRangingScanResults = new ArrayList<>();
+            mTopRangingScanResults.add(mScanResult);
         }
 
         mMAC = mScanResult.BSSID;
@@ -274,6 +283,7 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     public void onLoggingButtonClick(View view) {
         Intent intent = new Intent(this, LoggingActivity.class);
         intent.putExtra(SCAN_RESULT_EXTRA, mScanResult);
+        intent.putParcelableArrayListExtra(TOP_RANGING_SCAN_RESULTS_EXTRA, mTopRangingScanResults);
         startActivity(intent);
     }
 

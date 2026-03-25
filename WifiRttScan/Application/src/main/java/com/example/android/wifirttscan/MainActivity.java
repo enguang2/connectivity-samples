@@ -16,6 +16,7 @@
 package com.example.android.wifirttscan;
 
 import static com.example.android.wifirttscan.AccessPointRangingResultsActivity.SCAN_RESULT_EXTRA;
+import static com.example.android.wifirttscan.AccessPointRangingResultsActivity.TOP_RANGING_SCAN_RESULTS_EXTRA;
 
 import android.Manifest;
 import android.Manifest.permission;
@@ -157,7 +158,14 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
         Intent intent = new Intent(this, AccessPointRangingResultsActivity.class);
         intent.putExtra(SCAN_RESULT_EXTRA, scanResult);
+        intent.putParcelableArrayListExtra(
+                TOP_RANGING_SCAN_RESULTS_EXTRA, getTopRangingScanResults());
         startActivity(intent);
+    }
+
+    private ArrayList<ScanResult> getTopRangingScanResults() {
+        int maxCount = Math.min(8, mAccessPointsSupporting80211mc.size());
+        return new ArrayList<>(mAccessPointsSupporting80211mc.subList(0, maxCount));
     }
 
     public void onClickScanForAccessPoints(View view) {
