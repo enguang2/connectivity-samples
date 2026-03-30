@@ -65,6 +65,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
     private MyAdapter mAdapter;
 
+    private boolean pressed_scan = false;
+
+    public static List<ScanResult> sBackgroundScanResults;
+
     long startTime;
     long endTime;
 
@@ -98,6 +102,8 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     protected void onResume() {
         Log.d(TAG, "onResume()");
         super.onResume();
+
+        checkForBackgroundUpdates();
 
         mPermissionApproved = isPermissionGranted();
 
@@ -151,6 +157,22 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         }
     }
 
+    private void checkForBackgroundUpdates() {
+        if (sBackgroundScanResults != null) {
+            Log.d(TAG, "Updating list with scan found during ranging.");
+            mAccessPointsSupporting80211mc = new ArrayList<>(sBackgroundScanResults);
+
+            // Re-run your preprocessing (sorting/filtering)
+            mWifiScanResultsCallback.preprocess(mAccessPointsSupporting80211mc);
+
+            // Update UI
+            mAdapter.swapData(mAccessPointsSupporting80211mc);
+            logToUi("Updated from background scan.");
+
+            // Clear it so we don't process the same scan twice
+            sBackgroundScanResults = null;
+        }
+    }
     @Override
     public void onScanResultItemClick(ScanResult scanResult) {
         Log.d(TAG, "onScanResultItemClick(): ssid: " + scanResult.SSID);
@@ -168,6 +190,10 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             startTime = System.currentTimeMillis();
             Log.d(TAG, "WiFi scan started at: " + startTime);
             boolean success = mWifiManager.startScan();
+
+            // System Scan?
+            pressed_scan = success;
+
             if (!success) {
                 logToUi("WiFi scan failed to start (throttled?).");
             }
@@ -222,10 +248,21 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         public void onScanResultsAvailable() {
             // Log the time when the scan finishes
             endTime = System.currentTimeMillis();
-            Log.d(TAG, "WiFi scan finished at: " + endTime);
-            Log.d(TAG, "WiFi scan duration: " + (endTime - startTime) + " ms");
-
+            
             List<ScanResult> scanResults = mWifiManager.getScanResults();
+
+            if (pressed_scan) {
+                Log.d(TAG, "WiFi scan finished at: " + endTime);
+                pressed_scan = false;
+                Log.d(TAG, "WiFi scan duration: " + (endTime - startTime) + " ms");
+            } else {
+                long app_time = scanResults.get(0).timestamp / 1000;
+                long time_since_boot = android.os.SystemClock.elapsedRealtime();
+
+                Log.d(TAG, "SYSTEM WiFi scan started at (since app boot): " + app_time + " ms");
+                Log.d(TAG, "SYSTEM WiFi Scan finished at (since app boot): " + time_since_boot + " ms");
+                Log.d(TAG, "SYSTEM WiFi scan duration: " + (time_since_boot - app_time) + " ms");
+            }
 
             if (scanResults != null) {
                 if (mPermissionApproved) {
@@ -237,8 +274,6 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                     List<ScanResult> sortedBySignal = new ArrayList<>(mAccessPointsSupporting80211mc);
                     // Higher RSSI (less negative dBm) first: -40 before -70
                     preprocess(sortedBySignal);
-
-
 
                     mAccessPointsSupporting80211mc = sortedBySignal;
                     mAdapter.swapData(mAccessPointsSupporting80211mc);
