@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.net.wifi.rtt.RangingRequest;
 import android.net.wifi.rtt.ResponderConfig;
 import android.net.wifi.rtt.RangingResult;
@@ -102,6 +103,10 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
     private WifiRttManager mWifiRttManager;
     private RttRangingResultCallback mRttRangingResultCallback;
 
+    private WifiManager wifiManager;
+
+    private long lastest_duration = -10000;
+
     // Triggers additional RangingRequests with delay.
     // TODO: @Enguang, this handler constructer is deprecated, need to specify which looper.
     final Handler mRangeRequestDelayHandler = new Handler();
@@ -149,6 +154,9 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
         // TODO: @Enguang use Application context instead of Activity context.
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRttRangingResultCallback = new RttRangingResultCallback();
+
+        // For Capturing System Scans
+        wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 
         // Used to store range (distance) and rangeSd (standard deviation of the measured distance)
         // history to calculate averages.
@@ -327,6 +335,27 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
         @Override
         public void onRangingResults(@NonNull List<RangingResult> list) {
+
+            // Permission Doesn't Matter Since we checked it in MainActivity.java
+            List<ScanResult> scanResults = wifiManager.getScanResults();
+            if (scanResults != null && !scanResults.isEmpty()) {
+                long app_time = scanResults.get(0).timestamp / 1000;
+                long time_since_boot = android.os.SystemClock.elapsedRealtime();
+                long duration = time_since_boot - app_time;
+
+                // if less than 10 seconds (10000 ms) likely a system scan and record last scan to also check against a repeated one
+                if (duration < 10000 && (duration - lastest_duration > 5000)) {
+                    lastest_duration = duration;
+                    Log.d(TAG, "SYSTEM WiFi scan started at (since app boot): " + app_time + " ms");
+                    Log.d(TAG, "SYSTEM WiFi Scan finished at (since app boot): " + time_since_boot + " ms");
+                    Log.d(TAG, "SYSTEM WiFi scan duration: " + (duration) + " ms");
+
+                    MainActivity.sBackgroundScanResults = scanResults;
+                } else {
+                    Log.d(TAG, "duplicate scan");
+                }
+            }
+
             if (!mIsActive) {
                 return;
             }
