@@ -184,16 +184,15 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
                 @NonNull List<ScanResult> originalList) {
             List<ScanResult> newList = new ArrayList<>();
 
-            for (ScanResult scanResult : originalList) {
-                if (scanResult.is80211mcResponder()) {
-                    newList.add(scanResult);
-                }
+            //                if (scanResult.is80211mcResponder()) {
+            //                    newList.add(scanResult);
+            //                }
+            // Show all RTT enabled APs.
+            // if (newList.size() >= RangingRequest.getMaxPeers()) {
+            //     break;
+            // }
+            newList.addAll(originalList);
 
-                // Show all RTT enabled APs.
-                // if (newList.size() >= RangingRequest.getMaxPeers()) {
-                //     break;
-                // }
-            }
             return newList;
         }
 
@@ -201,15 +200,14 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             // Sort the scanned AP list by signal strength.
             Collections.sort(list, (a, b) -> Integer.compare(b.level, a.level));
 
-            // Filter by channel bandwidth, only keeps the 80MHz channels.
-            list.removeIf(scan ->
-                    scan.channelWidth != ScanResult.CHANNEL_WIDTH_80MHZ ||
-                            !"\"IllinoisNet\"".equals(scan.getWifiSsid().toString())
-            );
+            // Filter by channel bandwidth, only keeps the 80MHz channels and 160mhz.
+//            list.removeIf(scan ->
+//                            !"\"IllinoisNet\"".equals(scan.getWifiSsid().toString())
+//            );
 
             // logcat to show ssid
             for (ScanResult scan : list) {
-                Log.d(TAG, "SSID: " + scan.getWifiSsid().toString() + " MAC " + scan.BSSID + " RSSI " + scan.level);
+                Log.d(TAG, "SSID: " + scan.getWifiSsid().toString() + " MAC " + scan.BSSID + " RSSI " + scan.level + " channel " + scan);
             }
 //            list.removeIf(scan ->
 //                    !"\"IllinoisNet\"".equals(scan.getWifiSsid().toString())

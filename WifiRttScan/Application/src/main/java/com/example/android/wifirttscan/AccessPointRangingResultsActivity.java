@@ -239,6 +239,8 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
                 .setMacAddress(original.getMacAddress())
                 .set80211mcSupported(true)
                 .setChannelWidth(original.getChannelWidth())
+//                .setFrequencyMhz(5580)
+//                .setCenterFreq0Mhz(5610)
                 .setFrequencyMhz(original.getFrequencyMhz())
                 .setCenterFreq0Mhz(original.getCenterFreq0Mhz())
                 .setCenterFreq1Mhz(original.getCenterFreq1Mhz())
