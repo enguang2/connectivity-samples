@@ -41,7 +41,7 @@ import java.util.Map;
 
 public class LoggingActivity extends AppCompatActivity {
     private static final String TAG = "LoggingActivity";
-    private static final int MAX_LOGGING_AP_COUNT = 8;
+    private static final int MAX_LOGGING_AP_COUNT = 10;
     private static final float TRUE_RANGE_METERS_DEFAULT = 0f;
     private static final int TIMER_INTERVAL_SECONDS_DEFAULT = 300;
     private static final int RANGING_INTERVAL_MS_DEFAULT = 1000;

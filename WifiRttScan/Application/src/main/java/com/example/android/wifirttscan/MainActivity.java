@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
     }
 
     private ArrayList<ScanResult> getTopRangingScanResults() {
-        int maxCount = Math.min(8, mAccessPointsSupporting80211mc.size());
+        int maxCount = Math.min(10, mAccessPointsSupporting80211mc.size());
         return new ArrayList<>(mAccessPointsSupporting80211mc.subList(0, maxCount));
     }
 
