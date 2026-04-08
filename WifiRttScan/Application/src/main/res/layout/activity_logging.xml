@@ -94,11 +94,37 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
-            android:text="@string/logging_true_range_label"
+            android:text="@string/logging_ap_coordinates_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <TextView
+            android:id="@+id/loaded_ap_coordinates_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:maxLines="3"
+            android:text="@string/logging_no_ap_coordinates_loaded"
+            android:textIsSelectable="true"
+            android:textSize="16sp"
+            tools:text="NEW_0328_IllinoisNet_AP_sc109_3rd_locations_with_latlon.csv" />
+
+        <Button
+            android:id="@+id/load_ap_coordinates_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:onClick="onLoadApCoordinatesClick"
+            android:text="@string/logging_load_ap_coordinates_button_label" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_phone_pixel_column_label"
             android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
 
         <EditText
-            android:id="@+id/true_range_edit_value"
+            android:id="@+id/phone_pixel_column_edit_value"
             android:layout_width="match_parent"
             android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
             android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
@@ -108,7 +134,67 @@
             android:singleLine="true"
             android:textAlignment="viewEnd"
             android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
-            tools:text="4.00" />
+            tools:text="0" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_phone_pixel_row_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <EditText
+            android:id="@+id/phone_pixel_row_edit_value"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:singleLine="true"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="0" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_phone_height_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <EditText
+            android:id="@+id/phone_height_edit_value"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:singleLine="true"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="1.25" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_pixels_per_meter_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <EditText
+            android:id="@+id/pixels_per_meter_edit_value"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:singleLine="true"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="67.239636" />
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/use_timer_switch"

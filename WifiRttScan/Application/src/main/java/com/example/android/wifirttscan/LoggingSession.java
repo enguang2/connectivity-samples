@@ -12,21 +12,18 @@ final class LoggingSession {
 
     private final String mBssid;
     private final RttLoggingFile mLogFile;
-    private float mGroundTruthDistanceMeters;
     private boolean mHasLoggedResults;
 
-    private LoggingSession(Context context, ScanResult scanResult, float trueRangeMeters)
+    private LoggingSession(Context context, ScanResult scanResult)
             throws IOException {
         mBssid = scanResult.BSSID;
-        mGroundTruthDistanceMeters = trueRangeMeters;
         mLogFile = new RttLoggingFile(context, scanResult);
     }
 
-    static LoggingSession createNewLoggingSession(
-            Context context, ScanResult scanResult, float trueRangeMeters) throws IOException {
+    static LoggingSession createNewLoggingSession(Context context, ScanResult scanResult)
+            throws IOException {
         endCurrentLoggingSession();
-        sCurrentLoggingSession =
-                new LoggingSession(context.getApplicationContext(), scanResult, trueRangeMeters);
+        sCurrentLoggingSession = new LoggingSession(context.getApplicationContext(), scanResult);
         return sCurrentLoggingSession;
     }
 
@@ -49,27 +46,13 @@ final class LoggingSession {
         return sCurrentLoggingSession.mLogFile.getFilePath();
     }
 
-    static float getGroundTruthDistanceMeters() {
-        if (sCurrentLoggingSession == null) {
-            return 0f;
-        }
-        return sCurrentLoggingSession.mGroundTruthDistanceMeters;
-    }
-
-    static void setGroundTruthDistanceMeters(float trueRangeMeters) {
-        if (sCurrentLoggingSession == null) {
-            return;
-        }
-        sCurrentLoggingSession.mGroundTruthDistanceMeters = trueRangeMeters;
-    }
-
-    static void addRangingResult(ScanResult scanResult, RangingResult rangingResult)
+    static void addRangingResult(
+            ScanResult scanResult, RangingResult rangingResult, @androidx.annotation.Nullable Double trueRangeMeters)
             throws IOException {
         if (sCurrentLoggingSession == null) {
             return;
         }
-        sCurrentLoggingSession.mLogFile.addRangingResult(
-                scanResult, rangingResult, sCurrentLoggingSession.mGroundTruthDistanceMeters);
+        sCurrentLoggingSession.mLogFile.addRangingResult(scanResult, rangingResult, trueRangeMeters);
         sCurrentLoggingSession.mHasLoggedResults = true;
     }
 

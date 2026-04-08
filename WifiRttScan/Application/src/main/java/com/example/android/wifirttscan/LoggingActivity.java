@@ -14,8 +14,6 @@ import android.net.wifi.rtt.WifiRttManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -42,7 +40,8 @@ import java.util.Map;
 public class LoggingActivity extends AppCompatActivity {
     private static final String TAG = "LoggingActivity";
     private static final int MAX_LOGGING_AP_COUNT = 10;
-    private static final float TRUE_RANGE_METERS_DEFAULT = 0f;
+    private static final double PHONE_HEIGHT_METERS_DEFAULT = 1.25;
+    private static final double PIXELS_PER_METER_DEFAULT = 67.239636;
     private static final int TIMER_INTERVAL_SECONDS_DEFAULT = 300;
     private static final int RANGING_INTERVAL_MS_DEFAULT = 1000;
     private static final String DISTANCE_FORMAT = "%.2f";
@@ -62,27 +61,38 @@ public class LoggingActivity extends AppCompatActivity {
     private TextView mEstimatedRangeTextView;
     private TextView mLoggingStateTextView;
     private TextView mLoggingFilePathTextView;
+    private TextView mLoadedApCoordinatesTextView;
 
-    private EditText mTrueRangeEditText;
+    private EditText mPhonePixelColumnEditText;
+    private EditText mPhonePixelRowEditText;
+    private EditText mPhoneHeightEditText;
+    private EditText mPixelsPerMeterEditText;
     private EditText mTimerIntervalEditText;
     private EditText mRangingIntervalEditText;
     private SwitchCompat mUseTimerSwitch;
 
+    private Button mLoadApCoordinatesButton;
     private Button mStartButton;
     private Button mStopButton;
     private Button mShareButton;
 
+    private ActivityResultLauncher<String[]> mLoadApCoordinatesLauncher;
     private ActivityResultLauncher<String> mShareFileLauncher;
 
     private ScanResult mScanResult;
     private ArrayList<ScanResult> mLoggingScanResults;
     private Map<String, ScanResult> mScanResultsByBssid;
+    private ApCoordinateDataHelper.LoadedApCoordinateData mLoadedApCoordinateData;
     private String mMac;
     private WifiRttManager mWifiRttManager;
     private LoggingRangingResultCallback mRangingResultCallback;
 
     private boolean mIsLogging;
     private int mRangingIntervalMillis = RANGING_INTERVAL_MS_DEFAULT;
+    private double mPhonePixelColumn;
+    private double mPhonePixelRow;
+    private double mPhoneHeightMeters = PHONE_HEIGHT_METERS_DEFAULT;
+    private double mPixelsPerMeter = PIXELS_PER_METER_DEFAULT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,23 +158,36 @@ public class LoggingActivity extends AppCompatActivity {
         shareFile();
     }
 
+    public void onLoadApCoordinatesClick(View view) {
+        loadApCoordinatesCsv();
+    }
+
     private void initializeViews() {
         mSsidTextView = findViewById(R.id.logging_ssid);
         mBssidTextView = findViewById(R.id.logging_bssid);
         mEstimatedRangeTextView = findViewById(R.id.estimated_range_value);
         mLoggingStateTextView = findViewById(R.id.logging_state_value);
         mLoggingFilePathTextView = findViewById(R.id.logging_file_path_value);
-        mTrueRangeEditText = findViewById(R.id.true_range_edit_value);
+        mLoadedApCoordinatesTextView = findViewById(R.id.loaded_ap_coordinates_value);
+        mPhonePixelColumnEditText = findViewById(R.id.phone_pixel_column_edit_value);
+        mPhonePixelRowEditText = findViewById(R.id.phone_pixel_row_edit_value);
+        mPhoneHeightEditText = findViewById(R.id.phone_height_edit_value);
+        mPixelsPerMeterEditText = findViewById(R.id.pixels_per_meter_edit_value);
         mTimerIntervalEditText = findViewById(R.id.timer_interval_edit_value);
         mRangingIntervalEditText = findViewById(R.id.logging_ranging_interval_edit_value);
         mUseTimerSwitch = findViewById(R.id.use_timer_switch);
+        mLoadApCoordinatesButton = findViewById(R.id.load_ap_coordinates_button);
         mStartButton = findViewById(R.id.start_logging_button);
         mStopButton = findViewById(R.id.stop_logging_button);
         mShareButton = findViewById(R.id.share_file_button);
     }
 
     private void initializeDefaultValues() {
-        mTrueRangeEditText.setText(formatDistance(TRUE_RANGE_METERS_DEFAULT));
+        mLoadedApCoordinatesTextView.setText(R.string.logging_no_ap_coordinates_loaded);
+        mPhonePixelColumnEditText.setText("0");
+        mPhonePixelRowEditText.setText("0");
+        mPhoneHeightEditText.setText(formatDecimal(PHONE_HEIGHT_METERS_DEFAULT));
+        mPixelsPerMeterEditText.setText(formatDecimal(PIXELS_PER_METER_DEFAULT));
         mTimerIntervalEditText.setText(String.valueOf(TIMER_INTERVAL_SECONDS_DEFAULT));
         mRangingIntervalEditText.setText(String.valueOf(RANGING_INTERVAL_MS_DEFAULT));
         updateTimerInputState(mUseTimerSwitch.isChecked());
@@ -173,40 +196,13 @@ public class LoggingActivity extends AppCompatActivity {
     private void initializeListeners() {
         mUseTimerSwitch.setOnCheckedChangeListener(
                 (buttonView, isChecked) -> updateTimerInputState(isChecked));
-
-        mTrueRangeEditText.addTextChangedListener(
-                new TextWatcher() {
-                    @Override
-                    public void beforeTextChanged(
-                            CharSequence s, int start, int count, int after) {
-                    }
-
-                    @Override
-                    public void onTextChanged(
-                            CharSequence s, int start, int before, int count) {
-                    }
-
-                    @Override
-                    public void afterTextChanged(Editable s) {
-                        Float trueRangeMeters = tryParseNonNegativeFloat(s.toString());
-                        if (trueRangeMeters != null && LoggingSession.hasCurrentLoggingSession(mMac)) {
-                            LoggingSession.setGroundTruthDistanceMeters(trueRangeMeters);
-                        }
-                    }
-                });
     }
 
     private void createNewSession() {
-        Float trueRangeMeters =
-                parseNonNegativeFloat(mTrueRangeEditText, R.string.logging_true_range_error);
-        if (trueRangeMeters == null) {
-            return;
-        }
-
         stopLogging(false);
 
         try {
-            LoggingSession.createNewLoggingSession(this, mScanResult, trueRangeMeters);
+            LoggingSession.createNewLoggingSession(this, mScanResult);
             Toast.makeText(this, R.string.logging_session_created, Toast.LENGTH_SHORT).show();
             refreshSessionUi();
         } catch (IOException e) {
@@ -216,10 +212,46 @@ public class LoggingActivity extends AppCompatActivity {
     }
 
     private void initializeActivityResultLaunchers() {
+        mLoadApCoordinatesLauncher =
+                registerForActivityResult(
+                        new ActivityResultContracts.OpenDocument(),
+                        this::handleApCoordinatesSelected);
         mShareFileLauncher =
                 registerForActivityResult(
                         new ActivityResultContracts.CreateDocument("text/csv"),
                         this::handleShareDestinationSelected);
+    }
+
+    private void handleApCoordinatesSelected(@Nullable Uri uri) {
+        if (uri == null) {
+            return;
+        }
+
+        try {
+            getContentResolver()
+                    .takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException ignored) {
+            // Temporary access is enough for the current session if persistable permission fails.
+        }
+
+        try {
+            mLoadedApCoordinateData = ApCoordinateDataHelper.load(this, uri);
+            if (mLoadedApCoordinateData.apCoordinatesByBssid.isEmpty()) {
+                Toast.makeText(this, R.string.logging_ap_coordinates_empty, Toast.LENGTH_SHORT).show();
+                mLoadedApCoordinateData = null;
+                mLoadedApCoordinatesTextView.setText(R.string.logging_no_ap_coordinates_loaded);
+            } else {
+                mLoadedApCoordinatesTextView.setText(mLoadedApCoordinateData.displayName);
+                Toast.makeText(this, R.string.logging_ap_coordinates_loaded, Toast.LENGTH_SHORT).show();
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to load AP coordinate CSV.", e);
+            mLoadedApCoordinateData = null;
+            mLoadedApCoordinatesTextView.setText(R.string.logging_no_ap_coordinates_loaded);
+            Toast.makeText(this, R.string.logging_ap_coordinates_load_failed, Toast.LENGTH_SHORT).show();
+        }
+
+        updateButtonStates();
     }
 
     private void handleShareDestinationSelected(@Nullable Uri uri) {
@@ -256,8 +288,22 @@ public class LoggingActivity extends AppCompatActivity {
             return;
         }
 
-        Float trueRangeMeters =
-                parseNonNegativeFloat(mTrueRangeEditText, R.string.logging_true_range_error);
+        if (mLoadedApCoordinateData == null) {
+            Toast.makeText(this, R.string.logging_load_ap_coordinates_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Double phonePixelColumn =
+                parseNonNegativeDouble(
+                        mPhonePixelColumnEditText, R.string.logging_phone_pixel_column_error);
+        Double phonePixelRow =
+                parseNonNegativeDouble(
+                        mPhonePixelRowEditText, R.string.logging_phone_pixel_row_error);
+        Double phoneHeightMeters =
+                parsePositiveDouble(mPhoneHeightEditText, R.string.logging_phone_height_error);
+        Double pixelsPerMeter =
+                parsePositiveDouble(
+                        mPixelsPerMeterEditText, R.string.logging_pixels_per_meter_error);
         Integer rangingIntervalMillis =
                 parsePositiveInt(
                         mRangingIntervalEditText, R.string.logging_ranging_interval_error);
@@ -269,12 +315,17 @@ public class LoggingActivity extends AppCompatActivity {
                             mTimerIntervalEditText, R.string.logging_timer_interval_error);
         }
 
-        if (trueRangeMeters == null || rangingIntervalMillis == null
+        if (phonePixelColumn == null || phonePixelRow == null
+                || phoneHeightMeters == null || pixelsPerMeter == null
+                || rangingIntervalMillis == null
                 || (mUseTimerSwitch.isChecked() && timerIntervalSeconds == null)) {
             return;
         }
 
-        LoggingSession.setGroundTruthDistanceMeters(trueRangeMeters);
+        mPhonePixelColumn = phonePixelColumn;
+        mPhonePixelRow = phonePixelRow;
+        mPhoneHeightMeters = phoneHeightMeters;
+        mPixelsPerMeter = pixelsPerMeter;
         mRangingIntervalMillis = rangingIntervalMillis;
         mIsLogging = true;
         mLoggingStateTextView.setText(R.string.logging_state_logging);
@@ -329,10 +380,16 @@ public class LoggingActivity extends AppCompatActivity {
         mShareFileLauncher.launch(LoggingSession.getSuggestedExportFileName());
     }
 
+    private void loadApCoordinatesCsv() {
+        if (mIsLogging) {
+            return;
+        }
+        mLoadApCoordinatesLauncher.launch(new String[]{"text/*", "text/csv", "application/csv"});
+    }
+
     private void refreshSessionUi() {
         boolean hasSession = LoggingSession.hasCurrentLoggingSession(mMac);
         if (hasSession) {
-            mTrueRangeEditText.setText(formatDistance(LoggingSession.getGroundTruthDistanceMeters()));
             mLoggingFilePathTextView.setText(LoggingSession.getCurrentLoggingPath());
             if (!mIsLogging) {
                 mLoggingStateTextView.setText(R.string.logging_state_session_ready);
@@ -348,7 +405,8 @@ public class LoggingActivity extends AppCompatActivity {
 
     private void updateButtonStates() {
         boolean hasSession = LoggingSession.hasCurrentLoggingSession(mMac);
-        mStartButton.setEnabled(hasSession && !mIsLogging);
+        mLoadApCoordinatesButton.setEnabled(!mIsLogging);
+        mStartButton.setEnabled(hasSession && !mIsLogging && mLoadedApCoordinateData != null);
         mStopButton.setEnabled(hasSession && mIsLogging);
         mShareButton.setEnabled(hasSession && !mIsLogging && LoggingSession.hasLoggedResults(mMac));
     }
@@ -429,8 +487,17 @@ public class LoggingActivity extends AppCompatActivity {
             Log.d(TAG, "RangingResult failed with status: " + rangingResult.getStatus());
         }
 
+        Double trueRangeMeters =
+                ApCoordinateDataHelper.calculateTrueRangeMeters(
+                        scanResult,
+                        mLoadedApCoordinateData,
+                        mPhonePixelColumn,
+                        mPhonePixelRow,
+                        mPhoneHeightMeters,
+                        mPixelsPerMeter);
+
         try {
-            LoggingSession.addRangingResult(scanResult, rangingResult);
+            LoggingSession.addRangingResult(scanResult, rangingResult, trueRangeMeters);
         } catch (IOException e) {
             Log.e(TAG, "Failed to write ranging result to file.", e);
             Toast.makeText(this, R.string.logging_write_failed, Toast.LENGTH_SHORT).show();
@@ -443,11 +510,28 @@ public class LoggingActivity extends AppCompatActivity {
     }
 
     @Nullable
-    private Float parseNonNegativeFloat(EditText editText, @StringRes int errorResId) {
+    private Double parseNonNegativeDouble(EditText editText, @StringRes int errorResId) {
         String value = editText.getText().toString().trim();
         try {
-            float parsedValue = Float.parseFloat(value);
+            double parsedValue = Double.parseDouble(value);
             if (parsedValue < 0f) {
+                editText.setError(getString(errorResId));
+                return null;
+            }
+            editText.setError(null);
+            return parsedValue;
+        } catch (NumberFormatException e) {
+            editText.setError(getString(errorResId));
+            return null;
+        }
+    }
+
+    @Nullable
+    private Double parsePositiveDouble(EditText editText, @StringRes int errorResId) {
+        String value = editText.getText().toString().trim();
+        try {
+            double parsedValue = Double.parseDouble(value);
+            if (parsedValue <= 0d) {
                 editText.setError(getString(errorResId));
                 return null;
             }
@@ -476,14 +560,8 @@ public class LoggingActivity extends AppCompatActivity {
         }
     }
 
-    @Nullable
-    private Float tryParseNonNegativeFloat(String value) {
-        try {
-            float parsedValue = Float.parseFloat(value);
-            return parsedValue < 0f ? null : parsedValue;
-        } catch (NumberFormatException e) {
-            return null;
-        }
+    private String formatDecimal(double value) {
+        return String.format(Locale.US, "%.6f", value);
     }
 
     private class LoggingRangingResultCallback extends RangingResultCallback {

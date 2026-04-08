@@ -6,6 +6,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.rtt.RangingResult;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -57,7 +58,10 @@ final class RttLoggingFile {
         return mFile.getName();
     }
 
-    void addRangingResult(ScanResult scanResult, RangingResult rangingResult, float trueRangeMeters)
+    void addRangingResult(
+            ScanResult scanResult,
+            RangingResult rangingResult,
+            @Nullable Double trueRangeMeters)
             throws IOException {
         mWriter.write(createEntry(scanResult, rangingResult, trueRangeMeters));
         mWriter.flush();
@@ -112,9 +116,10 @@ final class RttLoggingFile {
     }
 
     private static String createEntry(
-            ScanResult scanResult, RangingResult rangingResult, float trueRangeMeters) {
+            ScanResult scanResult, RangingResult rangingResult, @Nullable Double trueRangeMeters) {
         boolean success = rangingResult.getStatus() == RangingResult.STATUS_SUCCESS;
 
+        String trueRange = trueRangeMeters == null ? "" : formatFloat(trueRangeMeters);
         String estimatedRange = success ? formatMeters(rangingResult.getDistanceMm()) : "";
         String standardDeviation = success ? formatMeters(rangingResult.getDistanceStdDevMm()) : "";
         String successfulMeasurements =
@@ -125,7 +130,7 @@ final class RttLoggingFile {
 
         return new StringBuilder()
                 .append(System.currentTimeMillis()).append(',')
-                .append(formatFloat(trueRangeMeters)).append(',')
+                .append(trueRange).append(',')
                 .append(estimatedRange).append(',')
                 .append(standardDeviation).append(',')
                 .append(successfulMeasurements).append(',')
@@ -144,7 +149,7 @@ final class RttLoggingFile {
         return formatFloat(millimeters / 1000f);
     }
 
-    private static String formatFloat(float value) {
+    private static String formatFloat(double value) {
         return String.format(Locale.US, "%.3f", value);
     }
 
