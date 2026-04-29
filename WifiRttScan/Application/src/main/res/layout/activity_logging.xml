@@ -241,7 +241,7 @@
             android:singleLine="true"
             android:textAlignment="viewEnd"
             android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
-            tools:text="1000" />
+            tools:text="300" />
 
         <Button
             android:id="@+id/new_session_button"

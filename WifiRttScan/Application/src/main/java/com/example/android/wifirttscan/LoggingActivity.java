@@ -43,8 +43,9 @@ public class LoggingActivity extends AppCompatActivity {
     private static final double PHONE_HEIGHT_METERS_DEFAULT = 1.25;
     private static final double PIXELS_PER_METER_DEFAULT = 67.239636;
     private static final int TIMER_INTERVAL_SECONDS_DEFAULT = 300;
-    private static final int RANGING_INTERVAL_MS_DEFAULT = 1000;
+    private static final int RANGING_INTERVAL_MS_DEFAULT = 300;
     private static final String DISTANCE_FORMAT = "%.2f";
+    private static final String FILE_NAME_COORDINATE_FORMAT = "Multi_(%.2f,%.2f)_";
 
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
 
@@ -201,8 +202,19 @@ public class LoggingActivity extends AppCompatActivity {
     private void createNewSession() {
         stopLogging(false);
 
+        Double phonePixelColumn =
+                parseNonNegativeDouble(
+                        mPhonePixelColumnEditText, R.string.logging_phone_pixel_column_error);
+        Double phonePixelRow =
+                parseNonNegativeDouble(
+                        mPhonePixelRowEditText, R.string.logging_phone_pixel_row_error);
+        if (phonePixelColumn == null || phonePixelRow == null) {
+            return;
+        }
+
         try {
-            LoggingSession.createNewLoggingSession(this, mScanResult);
+            LoggingSession.createNewLoggingSession(
+                    this, mScanResult, buildFileNamePrefix(phonePixelColumn, phonePixelRow));
             Toast.makeText(this, R.string.logging_session_created, Toast.LENGTH_SHORT).show();
             refreshSessionUi();
         } catch (IOException e) {
@@ -562,6 +574,11 @@ public class LoggingActivity extends AppCompatActivity {
 
     private String formatDecimal(double value) {
         return String.format(Locale.US, "%.6f", value);
+    }
+
+    private String buildFileNamePrefix(double phonePixelColumn, double phonePixelRow) {
+        return String.format(
+                Locale.US, FILE_NAME_COORDINATE_FORMAT, phonePixelColumn, phonePixelRow);
     }
 
     private class LoggingRangingResultCallback extends RangingResultCallback {

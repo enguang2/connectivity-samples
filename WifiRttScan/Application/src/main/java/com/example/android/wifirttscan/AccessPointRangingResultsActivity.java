@@ -49,7 +49,7 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
             "com.example.android.wifirttscan.extra.TOP_RANGING_SCAN_RESULTS";
 
     private static final int SAMPLE_SIZE_DEFAULT = 50;
-    private static final int MILLISECONDS_DELAY_BEFORE_NEW_RANGING_REQUEST_DEFAULT = 1000;
+    private static final int MILLISECONDS_DELAY_BEFORE_NEW_RANGING_REQUEST_DEFAULT = 300;
 
     // UI Elements.
     private TextView mSsidTextView;

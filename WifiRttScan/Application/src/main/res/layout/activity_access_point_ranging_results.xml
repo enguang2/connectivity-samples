@@ -333,7 +333,7 @@
         android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/stats_window_size_edit_value"
-        tools:text="1000" />
+        tools:text="300" />
 
     <LinearLayout
         android:id="@+id/bottom_actions"

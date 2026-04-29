@@ -35,13 +35,14 @@ final class RttLoggingFile {
     private final File mFile;
     private final BufferedWriter mWriter;
 
-    RttLoggingFile(Context context, ScanResult scanResult) throws IOException {
+    RttLoggingFile(Context context, ScanResult scanResult, String fileNamePrefix)
+            throws IOException {
         File directory = new File(context.getCacheDir(), LOG_DIRECTORY_NAME);
         if (!directory.exists() && !directory.mkdirs()) {
             throw new IOException("Failed to create log directory: " + directory.getAbsolutePath());
         }
 
-        mFile = new File(directory, createSuggestedFileName(scanResult));
+        mFile = new File(directory, createSuggestedFileName(scanResult, fileNamePrefix));
         mWriter =
                 new BufferedWriter(
                         new OutputStreamWriter(
@@ -100,10 +101,11 @@ final class RttLoggingFile {
         }
     }
 
-    static String createSuggestedFileName(ScanResult scanResult) {
+    static String createSuggestedFileName(ScanResult scanResult, String fileNamePrefix) {
         String ssid = sanitizeFileComponent(scanResult.SSID);
         String bssid = sanitizeFileComponent(scanResult.BSSID);
-        return "rtt-log-" + ssid + "-" + bssid + "-" + DATE_FORMATTER.format(new Date()) + ".csv";
+        String prefix = fileNamePrefix == null ? "" : fileNamePrefix;
+        return prefix + "rtt-log-" + ssid + "-" + bssid + "-" + DATE_FORMATTER.format(new Date()) + ".csv";
     }
 
     private static String sanitizeFileComponent(String value) {

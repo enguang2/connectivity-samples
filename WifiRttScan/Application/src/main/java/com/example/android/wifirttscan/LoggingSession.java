@@ -14,16 +14,18 @@ final class LoggingSession {
     private final RttLoggingFile mLogFile;
     private boolean mHasLoggedResults;
 
-    private LoggingSession(Context context, ScanResult scanResult)
+    private LoggingSession(Context context, ScanResult scanResult, String fileNamePrefix)
             throws IOException {
         mBssid = scanResult.BSSID;
-        mLogFile = new RttLoggingFile(context, scanResult);
+        mLogFile = new RttLoggingFile(context, scanResult, fileNamePrefix);
     }
 
-    static LoggingSession createNewLoggingSession(Context context, ScanResult scanResult)
+    static LoggingSession createNewLoggingSession(
+            Context context, ScanResult scanResult, String fileNamePrefix)
             throws IOException {
         endCurrentLoggingSession();
-        sCurrentLoggingSession = new LoggingSession(context.getApplicationContext(), scanResult);
+        sCurrentLoggingSession =
+                new LoggingSession(context.getApplicationContext(), scanResult, fileNamePrefix);
         return sCurrentLoggingSession;
     }
 
