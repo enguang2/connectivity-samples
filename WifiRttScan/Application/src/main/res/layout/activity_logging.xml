@@ -243,6 +243,26 @@
             android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
             tools:text="300" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:text="@string/logging_ap_count_label"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size" />
+
+        <EditText
+            android:id="@+id/logging_ap_count_edit_value"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/activity_access_point_ranging_request_edit_view_height"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:ems="10"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:singleLine="true"
+            android:textAlignment="viewEnd"
+            android:textSize="@dimen/activity_access_point_ranging_request_item_text_size"
+            tools:text="8" />
+
         <Button
             android:id="@+id/new_session_button"
             android:layout_width="match_parent"

@@ -70,6 +70,7 @@ public class LoggingActivity extends AppCompatActivity {
     private EditText mPixelsPerMeterEditText;
     private EditText mTimerIntervalEditText;
     private EditText mRangingIntervalEditText;
+    private EditText mApCountEditText;
     private SwitchCompat mUseTimerSwitch;
 
     private Button mLoadApCoordinatesButton;
@@ -82,6 +83,7 @@ public class LoggingActivity extends AppCompatActivity {
 
     private ScanResult mScanResult;
     private ArrayList<ScanResult> mLoggingScanResults;
+    private ArrayList<ScanResult> mActiveScanResults;
     private Map<String, ScanResult> mScanResultsByBssid;
     private ApCoordinateDataHelper.LoadedApCoordinateData mLoadedApCoordinateData;
     private String mMac;
@@ -90,6 +92,7 @@ public class LoggingActivity extends AppCompatActivity {
 
     private boolean mIsLogging;
     private int mRangingIntervalMillis = RANGING_INTERVAL_MS_DEFAULT;
+    private int mLastLoggedApCount = -1;
     private double mPhonePixelColumn;
     private double mPhonePixelRow;
     private double mPhoneHeightMeters = PHONE_HEIGHT_METERS_DEFAULT;
@@ -120,6 +123,7 @@ public class LoggingActivity extends AppCompatActivity {
         for (ScanResult scanResult : mLoggingScanResults) {
             mScanResultsByBssid.put(scanResult.BSSID, scanResult);
         }
+        mApCountEditText.setText(String.valueOf(mLoggingScanResults.size()));
 
         mWifiRttManager = (WifiRttManager) getSystemService(Context.WIFI_RTT_RANGING_SERVICE);
         mRangingResultCallback = new LoggingRangingResultCallback();
@@ -176,6 +180,7 @@ public class LoggingActivity extends AppCompatActivity {
         mPixelsPerMeterEditText = findViewById(R.id.pixels_per_meter_edit_value);
         mTimerIntervalEditText = findViewById(R.id.timer_interval_edit_value);
         mRangingIntervalEditText = findViewById(R.id.logging_ranging_interval_edit_value);
+        mApCountEditText = findViewById(R.id.logging_ap_count_edit_value);
         mUseTimerSwitch = findViewById(R.id.use_timer_switch);
         mLoadApCoordinatesButton = findViewById(R.id.load_ap_coordinates_button);
         mStartButton = findViewById(R.id.start_logging_button);
@@ -191,6 +196,7 @@ public class LoggingActivity extends AppCompatActivity {
         mPixelsPerMeterEditText.setText(formatDecimal(PIXELS_PER_METER_DEFAULT));
         mTimerIntervalEditText.setText(String.valueOf(TIMER_INTERVAL_SECONDS_DEFAULT));
         mRangingIntervalEditText.setText(String.valueOf(RANGING_INTERVAL_MS_DEFAULT));
+        mApCountEditText.setText(String.valueOf(MAX_LOGGING_AP_COUNT));
         updateTimerInputState(mUseTimerSwitch.isChecked());
     }
 
@@ -215,6 +221,7 @@ public class LoggingActivity extends AppCompatActivity {
         try {
             LoggingSession.createNewLoggingSession(
                     this, mScanResult, buildFileNamePrefix(phonePixelColumn, phonePixelRow));
+            mLastLoggedApCount = -1;
             Toast.makeText(this, R.string.logging_session_created, Toast.LENGTH_SHORT).show();
             refreshSessionUi();
         } catch (IOException e) {
@@ -319,6 +326,7 @@ public class LoggingActivity extends AppCompatActivity {
         Integer rangingIntervalMillis =
                 parsePositiveInt(
                         mRangingIntervalEditText, R.string.logging_ranging_interval_error);
+        Integer apCount = parseApCount();
 
         Integer timerIntervalSeconds = null;
         if (mUseTimerSwitch.isChecked()) {
@@ -330,6 +338,7 @@ public class LoggingActivity extends AppCompatActivity {
         if (phonePixelColumn == null || phonePixelRow == null
                 || phoneHeightMeters == null || pixelsPerMeter == null
                 || rangingIntervalMillis == null
+                || apCount == null
                 || (mUseTimerSwitch.isChecked() && timerIntervalSeconds == null)) {
             return;
         }
@@ -339,6 +348,16 @@ public class LoggingActivity extends AppCompatActivity {
         mPhoneHeightMeters = phoneHeightMeters;
         mPixelsPerMeter = pixelsPerMeter;
         mRangingIntervalMillis = rangingIntervalMillis;
+        mActiveScanResults =
+                new ArrayList<>(mLoggingScanResults.subList(0, apCount));
+        if (apCount != mLastLoggedApCount) {
+            Log.i(TAG,
+                    "[AP_COUNT_CHANGE] Starting ranging with new AP count: previous="
+                            + (mLastLoggedApCount < 0 ? "none" : mLastLoggedApCount)
+                            + ", current=" + apCount
+                            + ", session=" + LoggingSession.getCurrentLoggingPath());
+            mLastLoggedApCount = apCount;
+        }
         mIsLogging = true;
         mLoggingStateTextView.setText(R.string.logging_state_logging);
         updateButtonStates();
@@ -468,7 +487,9 @@ public class LoggingActivity extends AppCompatActivity {
             return;
         }
 
-        RangingRequest rangingRequest = WifiRttUtils.buildAccessPointRequest(mLoggingScanResults);
+        List<ScanResult> scanResultsForRequest =
+                mActiveScanResults != null ? mActiveScanResults : mLoggingScanResults;
+        RangingRequest rangingRequest = WifiRttUtils.buildAccessPointRequest(scanResultsForRequest);
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRangingResultCallback);
     }
@@ -568,6 +589,24 @@ public class LoggingActivity extends AppCompatActivity {
             return parsedValue;
         } catch (NumberFormatException e) {
             editText.setError(getString(errorResId));
+            return null;
+        }
+    }
+
+    @Nullable
+    private Integer parseApCount() {
+        String value = mApCountEditText.getText().toString().trim();
+        int maxAvailable = mLoggingScanResults != null ? mLoggingScanResults.size() : 0;
+        try {
+            int parsedValue = Integer.parseInt(value);
+            if (parsedValue < 1 || parsedValue > maxAvailable) {
+                mApCountEditText.setError(getString(R.string.logging_ap_count_error));
+                return null;
+            }
+            mApCountEditText.setError(null);
+            return parsedValue;
+        } catch (NumberFormatException e) {
+            mApCountEditText.setError(getString(R.string.logging_ap_count_error));
             return null;
         }
     }

@@ -64,6 +64,8 @@
     <string name="logging_use_timer_label">Use timer to auto-stop logging</string>
     <string name="logging_timer_interval_label">Total logging timer (s)</string>
     <string name="logging_ranging_interval_label">Ranging interval (ms)</string>
+    <string name="logging_ap_count_label">APs per ranging request</string>
+    <string name="logging_ap_count_error">Enter an AP count between 1 and the loaded AP list size.</string>
     <string name="logging_new_session_button_label">New Session</string>
     <string name="logging_start_button_label">Start</string>
     <string name="logging_stop_button_label">Stop</string>
