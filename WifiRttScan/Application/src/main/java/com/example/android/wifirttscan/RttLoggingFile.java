@@ -129,9 +129,11 @@ final class RttLoggingFile {
         String attemptedMeasurements =
                 success ? String.valueOf(rangingResult.getNumAttemptedMeasurements()) : "";
         String rssi = success ? String.valueOf(rangingResult.getRssi()) : "";
+        String timestampMillis =
+                success ? String.valueOf(rangingResult.getRangingTimestampMillis()) : "";
 
         return new StringBuilder()
-                .append(System.currentTimeMillis()).append(',')
+                .append(timestampMillis).append(',')
                 .append(trueRange).append(',')
                 .append(estimatedRange).append(',')
                 .append(standardDeviation).append(',')

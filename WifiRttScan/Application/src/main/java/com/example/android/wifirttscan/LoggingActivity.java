@@ -14,6 +14,7 @@ import android.net.wifi.rtt.WifiRttManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -92,6 +93,8 @@ public class LoggingActivity extends AppCompatActivity {
 
     private boolean mIsLogging;
     private int mRangingIntervalMillis = RANGING_INTERVAL_MS_DEFAULT;
+    // SystemClock.elapsedRealtime() of the most recent startRanging() call.
+    private long mLastStartRangingElapsedMs = 0L;
     private int mLastLoggedApCount = -1;
     private double mPhonePixelColumn;
     private double mPhonePixelRow;
@@ -490,6 +493,9 @@ public class LoggingActivity extends AppCompatActivity {
         List<ScanResult> scanResultsForRequest =
                 mActiveScanResults != null ? mActiveScanResults : mLoggingScanResults;
         RangingRequest rangingRequest = WifiRttUtils.buildAccessPointRequest(scanResultsForRequest);
+        mLastStartRangingElapsedMs = SystemClock.elapsedRealtime();
+        Log.d(TAG, "startRanging() called for " + scanResultsForRequest.size() + " AP(s) at "
+                + mLastStartRangingElapsedMs + " ms");
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRangingResultCallback);
     }
@@ -634,6 +640,10 @@ public class LoggingActivity extends AppCompatActivity {
 
         @Override
         public void onRangingResults(@NonNull List<RangingResult> list) {
+            long callbackElapsedMs = SystemClock.elapsedRealtime();
+            long durationMs = callbackElapsedMs - mLastStartRangingElapsedMs;
+            Log.d(TAG, "RangingResultCallback triggered at " + callbackElapsedMs
+                    + " ms, duration=" + durationMs + " ms (results=" + list.size() + ")");
             if (!mIsLogging) {
                 return;
             }

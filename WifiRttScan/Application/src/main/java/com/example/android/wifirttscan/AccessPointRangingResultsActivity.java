@@ -25,6 +25,7 @@ import android.net.wifi.rtt.WifiRttManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.annotation.NonNull;
@@ -79,6 +80,10 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
     // Flag to track if the ranging loop should be running.
     private boolean mIsActive = false;
+
+    // SystemClock.elapsedRealtime() of the most recent startRanging() call. Used to log the
+    // round-trip duration when the RangingResultCallback fires.
+    private long mLastStartRangingElapsedMs = 0L;
 
     // Max sample size to calculate average for
     // 1. Distance to device (getDistanceMm) over time
@@ -224,6 +229,9 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
         mNumberOfRangeRequests++;
         RangingRequest rangingRequest = WifiRttUtils.buildSingleAccessPointRequest(mScanResult);
 
+        mLastStartRangingElapsedMs = SystemClock.elapsedRealtime();
+        Log.d(TAG, "startRanging() called for MAC " + mMAC
+                + " at " + mLastStartRangingElapsedMs + " ms");
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRttRangingResultCallback);
     }
@@ -310,6 +318,10 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
         @Override
         public void onRangingResults(@NonNull List<RangingResult> list) {
+            long callbackElapsedMs = SystemClock.elapsedRealtime();
+            long durationMs = callbackElapsedMs - mLastStartRangingElapsedMs;
+            Log.d(TAG, "RangingResultCallback triggered at " + callbackElapsedMs
+                    + " ms, duration=" + durationMs + " ms (results=" + list.size() + ")");
             if (!mIsActive) {
                 return;
             }

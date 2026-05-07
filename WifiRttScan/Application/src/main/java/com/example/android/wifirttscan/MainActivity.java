@@ -29,6 +29,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.rtt.RangingRequest;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
@@ -173,8 +174,8 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
             logToUi(getString(R.string.retrieving_access_points));
 
             // Start WiFi scan, log time. Results will be received in WifiScanResultsCallback.
-            startTime = System.currentTimeMillis();
-            Log.d(TAG, "WiFi scan started at: " + startTime);
+            startTime = SystemClock.elapsedRealtime();
+            Log.d(TAG, "WiFi scan started at: " + startTime + " ms");
             boolean success = mWifiManager.startScan();
             if (!success) {
                 logToUi("WiFi scan failed to start (throttled?).");
@@ -229,8 +230,8 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
         @SuppressLint("MissingPermission")
         public void onScanResultsAvailable() {
             // Log the time when the scan finishes
-            endTime = System.currentTimeMillis();
-            Log.d(TAG, "WiFi scan finished at: " + endTime);
+            endTime = SystemClock.elapsedRealtime();
+            Log.d(TAG, "WiFi scan finished at: " + endTime + " ms");
             Log.d(TAG, "WiFi scan duration: " + (endTime - startTime) + " ms");
 
             List<ScanResult> scanResults = mWifiManager.getScanResults();
