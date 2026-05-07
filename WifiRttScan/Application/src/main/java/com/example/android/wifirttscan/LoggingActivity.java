@@ -13,6 +13,7 @@ import android.net.wifi.rtt.WifiRttManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -357,6 +358,8 @@ public class LoggingActivity extends AppCompatActivity {
         }
 
         RangingRequest rangingRequest = WifiRttUtils.buildSingleAccessPointRequest(mScanResult);
+        Log.d(TAG, "startRanging() called for MAC " + mMac
+                + " at " + SystemClock.elapsedRealtime() + " ms");
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRangingResultCallback);
     }
@@ -455,6 +458,8 @@ public class LoggingActivity extends AppCompatActivity {
 
         @Override
         public void onRangingResults(@NonNull List<RangingResult> list) {
+            Log.d(TAG, "RangingResultCallback triggered at "
+                    + SystemClock.elapsedRealtime() + " ms (results=" + list.size() + ")");
             if (!mIsLogging) {
                 return;
             }
