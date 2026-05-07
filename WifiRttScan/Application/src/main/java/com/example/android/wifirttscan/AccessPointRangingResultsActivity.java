@@ -30,6 +30,7 @@ import android.net.wifi.rtt.WifiRttManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
@@ -218,7 +219,8 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
         // Step 3: Build the RangingRequest with the modified ResponderConfig
         RangingRequest rangingRequest = new RangingRequest.Builder().addResponder(modified).build();
 
-    
+        Log.d(TAG, "startRanging() called for MAC " + mMAC
+                + " at " + SystemClock.elapsedRealtime() + " ms");
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRttRangingResultCallback);
     }
@@ -308,6 +310,8 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
         @Override
         public void onRangingResults(@NonNull List<RangingResult> list) {
+            Log.d(TAG, "RangingResultCallback triggered at "
+                    + SystemClock.elapsedRealtime() + " ms (results=" + list.size() + ")");
             Log.d(TAG, "onRangingResults(): " + list);
 
             // Because we are only requesting RangingResult for one access point (not multiple
@@ -321,6 +325,9 @@ public class AccessPointRangingResultsActivity extends AppCompatActivity {
 
                     if (rangingResult.getStatus() == RangingResult.STATUS_SUCCESS) {
 
+                        Log.d(TAG, "RangingResult success for MAC " + mMAC
+                                + " rangingTimestamp=" + rangingResult.getRangingTimestampMillis()
+                                + " ms");
                         mNumberOfSuccessfulRangeRequests++;
 
                         mRangeTextView.setText(String.valueOf(rangingResult.getDistanceMm() / 1000f));
