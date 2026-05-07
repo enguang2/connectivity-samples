@@ -95,6 +95,8 @@ public class LoggingActivity extends AppCompatActivity {
     private int mRangingIntervalMillis = RANGING_INTERVAL_MS_DEFAULT;
     // SystemClock.elapsedRealtime() of the most recent startRanging() call.
     private long mLastStartRangingElapsedMs = 0L;
+    // Round-robin cursor into mActiveScanResults: which AP to range next.
+    private int mRoundRobinIndex = 0;
     private int mLastLoggedApCount = -1;
     private double mPhonePixelColumn;
     private double mPhonePixelRow;
@@ -353,6 +355,7 @@ public class LoggingActivity extends AppCompatActivity {
         mRangingIntervalMillis = rangingIntervalMillis;
         mActiveScanResults =
                 new ArrayList<>(mLoggingScanResults.subList(0, apCount));
+        mRoundRobinIndex = 0;
         if (apCount != mLastLoggedApCount) {
             Log.i(TAG,
                     "[AP_COUNT_CHANGE] Starting ranging with new AP count: previous="
@@ -492,10 +495,19 @@ public class LoggingActivity extends AppCompatActivity {
 
         List<ScanResult> scanResultsForRequest =
                 mActiveScanResults != null ? mActiveScanResults : mLoggingScanResults;
-        RangingRequest rangingRequest = WifiRttUtils.buildAccessPointRequest(scanResultsForRequest);
+        if (scanResultsForRequest.isEmpty()) {
+            Log.w(TAG, "No scan results available for ranging.");
+            return;
+        }
+        if (mRoundRobinIndex >= scanResultsForRequest.size()) {
+            mRoundRobinIndex = 0;
+        }
+        ScanResult target = scanResultsForRequest.get(mRoundRobinIndex);
+        RangingRequest rangingRequest = WifiRttUtils.buildSingleAccessPointRequest(target);
         mLastStartRangingElapsedMs = SystemClock.elapsedRealtime();
-        Log.d(TAG, "startRanging() called for " + scanResultsForRequest.size() + " AP(s) at "
-                + mLastStartRangingElapsedMs + " ms");
+        Log.d(TAG, "startRanging() called for MAC " + target.BSSID
+                + " [" + (mRoundRobinIndex + 1) + "/" + scanResultsForRequest.size() + "]"
+                + " at " + mLastStartRangingElapsedMs + " ms");
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRangingResultCallback);
     }
@@ -503,6 +515,11 @@ public class LoggingActivity extends AppCompatActivity {
     private void queueNextRangingRequest() {
         if (!mIsLogging) {
             return;
+        }
+        List<ScanResult> active =
+                mActiveScanResults != null ? mActiveScanResults : mLoggingScanResults;
+        if (!active.isEmpty()) {
+            mRoundRobinIndex = (mRoundRobinIndex + 1) % active.size();
         }
         mMainHandler.postDelayed(
                 new Runnable() {
