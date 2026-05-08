@@ -46,7 +46,9 @@ public class LoggingActivity extends AppCompatActivity {
     private static final int TIMER_INTERVAL_SECONDS_DEFAULT = 300;
     private static final int RANGING_INTERVAL_MS_DEFAULT = 300;
     private static final String DISTANCE_FORMAT = "%.2f";
-    private static final String FILE_NAME_COORDINATE_FORMAT = "Multi_(%.2f,%.2f)_";
+    private static final String FILE_NAME_COORDINATE_FORMAT = "Multi_(%.2f,%.2f)_%s_";
+    private static final String MODE_NAME_HOPPING = "hopping";
+    private static final String MODE_NAME_BATCHED = "batched";
 
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
 
@@ -225,9 +227,12 @@ public class LoggingActivity extends AppCompatActivity {
             return;
         }
 
+        String mode = mChannelHoppingSwitch.isChecked() ? MODE_NAME_HOPPING : MODE_NAME_BATCHED;
         try {
             LoggingSession.createNewLoggingSession(
-                    this, mScanResult, buildFileNamePrefix(phonePixelColumn, phonePixelRow));
+                    this,
+                    mScanResult,
+                    buildFileNamePrefix(phonePixelColumn, phonePixelRow, mode));
             mLastLoggedApCount = -1;
             Toast.makeText(this, R.string.logging_session_created, Toast.LENGTH_SHORT).show();
             refreshSessionUi();
@@ -652,9 +657,14 @@ public class LoggingActivity extends AppCompatActivity {
         return String.format(Locale.US, "%.6f", value);
     }
 
-    private String buildFileNamePrefix(double phonePixelColumn, double phonePixelRow) {
+    private String buildFileNamePrefix(
+            double phonePixelColumn, double phonePixelRow, String mode) {
         return String.format(
-                Locale.US, FILE_NAME_COORDINATE_FORMAT, phonePixelColumn, phonePixelRow);
+                Locale.US,
+                FILE_NAME_COORDINATE_FORMAT,
+                phonePixelColumn,
+                phonePixelRow,
+                mode);
     }
 
     private class LoggingRangingResultCallback extends RangingResultCallback {
