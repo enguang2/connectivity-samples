@@ -41,4 +41,12 @@
         android:textAlignment="center"
         android:textSize="@dimen/recycler_row_item_text_size"
         android:id="@+id/bssid_text_view"/>
+
+    <ImageView
+        android:id="@+id/drag_handle"
+        android:layout_width="32dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
+        android:contentDescription="Drag to reorder"
+        android:src="@android:drawable/ic_menu_sort_by_size"/>
 </LinearLayout>
