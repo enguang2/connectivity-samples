@@ -204,6 +204,15 @@
             android:text="@string/logging_use_timer_label" />
 
         <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/auto_ap_count_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top"
+            android:checked="false"
+            android:enabled="false"
+            android:text="@string/logging_auto_ap_count_label" />
+
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/channel_hopping_switch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

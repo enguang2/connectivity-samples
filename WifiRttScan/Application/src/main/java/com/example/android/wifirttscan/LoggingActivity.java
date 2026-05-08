@@ -76,6 +76,7 @@ public class LoggingActivity extends AppCompatActivity {
     private EditText mApCountEditText;
     private SwitchCompat mUseTimerSwitch;
     private SwitchCompat mChannelHoppingSwitch;
+    private SwitchCompat mAutoApCountSwitch;
 
     private Button mLoadApCoordinatesButton;
     private Button mStartButton;
@@ -100,6 +101,27 @@ public class LoggingActivity extends AppCompatActivity {
     private long mLastStartRangingElapsedMs = 0L;
     // Round-robin cursor into mActiveScanResults: which AP to range next.
     private int mRoundRobinIndex = 0;
+    // Current AP count being ranged in auto-AP mode; -1 when not active.
+    private int mCurrentApCount = -1;
+    private long mAutoApStepIntervalMs = 0L;
+
+    private final Runnable mAutoApCountStepRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!mIsLogging) return;
+            int next = mCurrentApCount - 1;
+            if (next < 1) {
+                stopLogging(true);
+                return;
+            }
+            mCurrentApCount = next;
+            mActiveScanResults =
+                    new ArrayList<>(mLoggingScanResults.subList(0, mCurrentApCount));
+            mRoundRobinIndex = 0;
+            Log.i(TAG, "[AP_COUNT_CHANGE] Auto step \u2192 " + mCurrentApCount);
+            mMainHandler.postDelayed(this, mAutoApStepIntervalMs);
+        }
+    };
     private int mLastLoggedApCount = -1;
     private double mPhonePixelColumn;
     private double mPhonePixelRow;
@@ -191,6 +213,7 @@ public class LoggingActivity extends AppCompatActivity {
         mApCountEditText = findViewById(R.id.logging_ap_count_edit_value);
         mUseTimerSwitch = findViewById(R.id.use_timer_switch);
         mChannelHoppingSwitch = findViewById(R.id.channel_hopping_switch);
+        mAutoApCountSwitch = findViewById(R.id.auto_ap_count_switch);
         mLoadApCoordinatesButton = findViewById(R.id.load_ap_coordinates_button);
         mStartButton = findViewById(R.id.start_logging_button);
         mStopButton = findViewById(R.id.stop_logging_button);
@@ -210,8 +233,13 @@ public class LoggingActivity extends AppCompatActivity {
     }
 
     private void initializeListeners() {
-        mUseTimerSwitch.setOnCheckedChangeListener(
-                (buttonView, isChecked) -> updateTimerInputState(isChecked));
+        mUseTimerSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            updateTimerInputState(isChecked);
+            if (!isChecked) {
+                mAutoApCountSwitch.setChecked(false);
+            }
+            updateButtonStates();
+        });
     }
 
     private void createNewSession() {
@@ -376,7 +404,16 @@ public class LoggingActivity extends AppCompatActivity {
         updateButtonStates();
 
         if (mUseTimerSwitch.isChecked() && timerIntervalSeconds != null) {
-            mMainHandler.postDelayed(mStopLoggingRunnable, timerIntervalSeconds * 1000L);
+            long stepMs = timerIntervalSeconds * 1000L;
+            if (mAutoApCountSwitch.isChecked()) {
+                mCurrentApCount = apCount;
+                mAutoApStepIntervalMs = stepMs;
+                Log.i(TAG, "[AP_COUNT_CHANGE] Auto-AP enabled, starting at "
+                        + mCurrentApCount + ", step=" + stepMs + " ms");
+                mMainHandler.postDelayed(mAutoApCountStepRunnable, stepMs);
+            } else {
+                mMainHandler.postDelayed(mStopLoggingRunnable, stepMs);
+            }
         }
 
         startRangingRequest();
@@ -391,6 +428,7 @@ public class LoggingActivity extends AppCompatActivity {
         }
 
         mIsLogging = false;
+        mCurrentApCount = -1;
         mEstimatedRangeTextView.setText(R.string.logging_not_available);
 
         try {
@@ -454,6 +492,7 @@ public class LoggingActivity extends AppCompatActivity {
         mStopButton.setEnabled(hasSession && mIsLogging);
         mShareButton.setEnabled(hasSession && !mIsLogging && LoggingSession.hasLoggedResults(mMac));
         mChannelHoppingSwitch.setEnabled(!mIsLogging);
+        mAutoApCountSwitch.setEnabled(!mIsLogging && mUseTimerSwitch.isChecked());
     }
 
     private void updateTimerInputState(boolean enabled) {
