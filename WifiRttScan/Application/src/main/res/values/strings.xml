@@ -62,6 +62,7 @@
     <string name="logging_phone_height_label">Phone height (m)</string>
     <string name="logging_pixels_per_meter_label">Pixels per meter</string>
     <string name="logging_use_timer_label">Use timer to auto-stop logging</string>
+    <string name="logging_channel_hopping_label">Channel hopping (single AP per request)</string>
     <string name="logging_timer_interval_label">Total logging timer (s)</string>
     <string name="logging_ranging_interval_label">Ranging interval (ms)</string>
     <string name="logging_ap_count_label">APs per ranging request</string>

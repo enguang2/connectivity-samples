@@ -73,6 +73,7 @@ public class LoggingActivity extends AppCompatActivity {
     private EditText mRangingIntervalEditText;
     private EditText mApCountEditText;
     private SwitchCompat mUseTimerSwitch;
+    private SwitchCompat mChannelHoppingSwitch;
 
     private Button mLoadApCoordinatesButton;
     private Button mStartButton;
@@ -187,6 +188,7 @@ public class LoggingActivity extends AppCompatActivity {
         mRangingIntervalEditText = findViewById(R.id.logging_ranging_interval_edit_value);
         mApCountEditText = findViewById(R.id.logging_ap_count_edit_value);
         mUseTimerSwitch = findViewById(R.id.use_timer_switch);
+        mChannelHoppingSwitch = findViewById(R.id.channel_hopping_switch);
         mLoadApCoordinatesButton = findViewById(R.id.load_ap_coordinates_button);
         mStartButton = findViewById(R.id.start_logging_button);
         mStopButton = findViewById(R.id.stop_logging_button);
@@ -446,6 +448,7 @@ public class LoggingActivity extends AppCompatActivity {
         mStartButton.setEnabled(hasSession && !mIsLogging && mLoadedApCoordinateData != null);
         mStopButton.setEnabled(hasSession && mIsLogging);
         mShareButton.setEnabled(hasSession && !mIsLogging && LoggingSession.hasLoggedResults(mMac));
+        mChannelHoppingSwitch.setEnabled(!mIsLogging);
     }
 
     private void updateTimerInputState(boolean enabled) {
@@ -499,15 +502,24 @@ public class LoggingActivity extends AppCompatActivity {
             Log.w(TAG, "No scan results available for ranging.");
             return;
         }
-        if (mRoundRobinIndex >= scanResultsForRequest.size()) {
-            mRoundRobinIndex = 0;
+
+        RangingRequest rangingRequest;
+        if (mChannelHoppingSwitch.isChecked()) {
+            if (mRoundRobinIndex >= scanResultsForRequest.size()) {
+                mRoundRobinIndex = 0;
+            }
+            ScanResult target = scanResultsForRequest.get(mRoundRobinIndex);
+            rangingRequest = WifiRttUtils.buildSingleAccessPointRequest(target);
+            mLastStartRangingElapsedMs = SystemClock.elapsedRealtime();
+            Log.d(TAG, "startRanging() [hopping] for MAC " + target.BSSID
+                    + " [" + (mRoundRobinIndex + 1) + "/" + scanResultsForRequest.size() + "]"
+                    + " at " + mLastStartRangingElapsedMs + " ms");
+        } else {
+            rangingRequest = WifiRttUtils.buildAccessPointRequest(scanResultsForRequest);
+            mLastStartRangingElapsedMs = SystemClock.elapsedRealtime();
+            Log.d(TAG, "startRanging() [batched] for " + scanResultsForRequest.size()
+                    + " AP(s) at " + mLastStartRangingElapsedMs + " ms");
         }
-        ScanResult target = scanResultsForRequest.get(mRoundRobinIndex);
-        RangingRequest rangingRequest = WifiRttUtils.buildSingleAccessPointRequest(target);
-        mLastStartRangingElapsedMs = SystemClock.elapsedRealtime();
-        Log.d(TAG, "startRanging() called for MAC " + target.BSSID
-                + " [" + (mRoundRobinIndex + 1) + "/" + scanResultsForRequest.size() + "]"
-                + " at " + mLastStartRangingElapsedMs + " ms");
         mWifiRttManager.startRanging(
                 rangingRequest, getApplication().getMainExecutor(), mRangingResultCallback);
     }
@@ -516,10 +528,12 @@ public class LoggingActivity extends AppCompatActivity {
         if (!mIsLogging) {
             return;
         }
-        List<ScanResult> active =
-                mActiveScanResults != null ? mActiveScanResults : mLoggingScanResults;
-        if (!active.isEmpty()) {
-            mRoundRobinIndex = (mRoundRobinIndex + 1) % active.size();
+        if (mChannelHoppingSwitch.isChecked()) {
+            List<ScanResult> active =
+                    mActiveScanResults != null ? mActiveScanResults : mLoggingScanResults;
+            if (!active.isEmpty()) {
+                mRoundRobinIndex = (mRoundRobinIndex + 1) % active.size();
+            }
         }
         mMainHandler.postDelayed(
                 new Runnable() {

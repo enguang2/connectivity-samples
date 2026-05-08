@@ -203,6 +203,14 @@
             android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
             android:text="@string/logging_use_timer_label" />
 
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/channel_hopping_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_access_point_ranging_request_margin_top_divider"
+            android:checked="true"
+            android:text="@string/logging_channel_hopping_label" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
