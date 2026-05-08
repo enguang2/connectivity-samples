@@ -19,10 +19,13 @@ import android.net.wifi.ScanResult;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.ViewHolder;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -38,10 +41,15 @@ public class MyAdapter extends RecyclerView.Adapter<ViewHolder> {
     private static ScanResultClickListener sScanResultClickListener;
 
     private List<ScanResult> mWifiAccessPointsWithRtt;
+    private OnStartDragListener mDragListener;
 
     public MyAdapter(List<ScanResult> list, ScanResultClickListener scanResultClickListener) {
         mWifiAccessPointsWithRtt = list;
         sScanResultClickListener = scanResultClickListener;
+    }
+
+    public void setOnStartDragListener(OnStartDragListener listener) {
+        mDragListener = listener;
     }
 
     public static class ViewHolderHeader extends RecyclerView.ViewHolder {
@@ -53,12 +61,22 @@ public class MyAdapter extends RecyclerView.Adapter<ViewHolder> {
     public class ViewHolderItem extends RecyclerView.ViewHolder implements View.OnClickListener {
         public TextView mSsidTextView;
         public TextView mBssidTextView;
+        public ImageView mDragHandle;
 
         public ViewHolderItem(View view) {
             super(view);
             view.setOnClickListener(this);
             mSsidTextView = view.findViewById(R.id.ssid_text_view);
             mBssidTextView = view.findViewById(R.id.bssid_text_view);
+            mDragHandle = view.findViewById(R.id.drag_handle);
+            mDragHandle.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN
+                        && mDragListener != null) {
+                    mDragListener.onStartDrag(this);
+                    return true;
+                }
+                return false;
+            });
         }
 
         @Override
@@ -143,9 +161,25 @@ public class MyAdapter extends RecyclerView.Adapter<ViewHolder> {
         }
     }
 
+    public void onItemMove(int fromAdapterPosition, int toAdapterPosition) {
+        int from = fromAdapterPosition - 1;
+        int to = toAdapterPosition - 1;
+        if (from < 0 || to < 0
+                || from >= mWifiAccessPointsWithRtt.size()
+                || to >= mWifiAccessPointsWithRtt.size()) {
+            return;
+        }
+        Collections.swap(mWifiAccessPointsWithRtt, from, to);
+        notifyItemMoved(fromAdapterPosition, toAdapterPosition);
+    }
+
     // Used to inform the class containing the RecyclerView that one of the ScanResult items in the
     // list was clicked.
     public interface ScanResultClickListener {
         void onScanResultItemClick(ScanResult scanResult);
+    }
+
+    public interface OnStartDragListener {
+        void onStartDrag(RecyclerView.ViewHolder viewHolder);
     }
 }

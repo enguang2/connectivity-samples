@@ -33,6 +33,7 @@ import android.os.SystemClock;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.LayoutManager;
@@ -91,6 +92,61 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
         mAdapter = new MyAdapter(mAccessPointsSupporting80211mc, this);
         mRecyclerView.setAdapter(mAdapter);
+
+        ItemTouchHelper.Callback dragCallback = new ItemTouchHelper.Callback() {
+            @Override
+            public boolean isLongPressDragEnabled() {
+                return false;
+            }
+
+            @Override
+            public boolean isItemViewSwipeEnabled() {
+                return false;
+            }
+
+            @Override
+            public int getMovementFlags(
+                    @NonNull RecyclerView recyclerView,
+                    @NonNull RecyclerView.ViewHolder viewHolder) {
+                if (viewHolder instanceof MyAdapter.ViewHolderHeader) {
+                    return 0;
+                }
+                return makeMovementFlags(
+                        ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0);
+            }
+
+            @Override
+            public boolean canDropOver(
+                    @NonNull RecyclerView recyclerView,
+                    @NonNull RecyclerView.ViewHolder current,
+                    @NonNull RecyclerView.ViewHolder target) {
+                return !(target instanceof MyAdapter.ViewHolderHeader);
+            }
+
+            @Override
+            public boolean onMove(
+                    @NonNull RecyclerView recyclerView,
+                    @NonNull RecyclerView.ViewHolder viewHolder,
+                    @NonNull RecyclerView.ViewHolder target) {
+                if (viewHolder instanceof MyAdapter.ViewHolderHeader
+                        || target instanceof MyAdapter.ViewHolderHeader) {
+                    return false;
+                }
+                mAdapter.onItemMove(
+                        viewHolder.getAdapterPosition(),
+                        target.getAdapterPosition());
+                return true;
+            }
+
+            @Override
+            public void onSwiped(
+                    @NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                // No-op: swipe is disabled.
+            }
+        };
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(dragCallback);
+        itemTouchHelper.attachToRecyclerView(mRecyclerView);
+        mAdapter.setOnStartDragListener(itemTouchHelper::startDrag);
 
         mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         mWifiScanResultsCallback = new WifiScanResultsCallback();
@@ -238,19 +294,13 @@ public class MainActivity extends AppCompatActivity implements ScanResultClickLi
 
             if (scanResults != null) {
                 if (mPermissionApproved) {
-                    mAccessPointsSupporting80211mc = scanResults;
-
-                    // Deprecated, show all APs.
-                    // mAccessPointsSupporting80211mc = find80211mcSupportedAccessPoints(scanResults);
-                    // In onScanResultsAvailable(), replace the direct assignment with:
-                    List<ScanResult> sortedBySignal = new ArrayList<>(mAccessPointsSupporting80211mc);
-                    // Higher RSSI (less negative dBm) first: -40 before -70
+                    List<ScanResult> sortedBySignal = new ArrayList<>(scanResults);
                     preprocess(sortedBySignal);
 
-
-
-                    mAccessPointsSupporting80211mc = sortedBySignal;
-                    mAdapter.swapData(mAccessPointsSupporting80211mc);
+                    // swapData mutates mAccessPointsSupporting80211mc in place (shared
+                    // reference with the adapter), so subsequent drag reorders are
+                    // visible to getTopRangingScanResults().
+                    mAdapter.swapData(sortedBySignal);
 
                     logToUi(
                             scanResults.size()
