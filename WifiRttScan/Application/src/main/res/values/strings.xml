@@ -88,7 +88,7 @@
     <string name="logging_phone_height_error">Enter a phone height greater than 0 meters.</string>
     <string name="logging_pixels_per_meter_error">Enter a pixels-per-meter value greater than 0.</string>
     <string name="logging_timer_interval_error">Enter a timer interval greater than 0 seconds.</string>
-    <string name="logging_ranging_interval_error">Enter a ranging interval greater than 0 milliseconds.</string>
+    <string name="logging_ranging_interval_error">Enter a ranging interval of 0 or more milliseconds.</string>
     <string name="logging_write_failed">Failed to write a ranging result to the log file.</string>
     <string name="logging_rtt_unavailable">Wi-Fi RTT is unavailable on this device.</string>
     <string name="logging_no_results_to_share">Log some ranging results before sharing the file.</string>

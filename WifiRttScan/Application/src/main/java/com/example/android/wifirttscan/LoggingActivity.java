@@ -43,8 +43,8 @@ public class LoggingActivity extends AppCompatActivity {
     private static final int MAX_LOGGING_AP_COUNT = 10;
     private static final double PHONE_HEIGHT_METERS_DEFAULT = 1.25;
     private static final double PIXELS_PER_METER_DEFAULT = 67.239636;
-    private static final int TIMER_INTERVAL_SECONDS_DEFAULT = 300;
-    private static final int RANGING_INTERVAL_MS_DEFAULT = 300;
+    private static final int TIMER_INTERVAL_SECONDS_DEFAULT = 30;
+    private static final int RANGING_INTERVAL_MS_DEFAULT = 0;
     private static final String DISTANCE_FORMAT = "%.2f";
     private static final String FILE_NAME_COORDINATE_FORMAT = "Multi_(%.2f,%.2f)_%s_";
     private static final String MODE_NAME_HOPPING = "hopping";
@@ -364,7 +364,7 @@ public class LoggingActivity extends AppCompatActivity {
                 parsePositiveDouble(
                         mPixelsPerMeterEditText, R.string.logging_pixels_per_meter_error);
         Integer rangingIntervalMillis =
-                parsePositiveInt(
+                parseNonNegativeInt(
                         mRangingIntervalEditText, R.string.logging_ranging_interval_error);
         Integer apCount = parseApCount();
 
@@ -663,6 +663,23 @@ public class LoggingActivity extends AppCompatActivity {
         try {
             int parsedValue = Integer.parseInt(value);
             if (parsedValue <= 0) {
+                editText.setError(getString(errorResId));
+                return null;
+            }
+            editText.setError(null);
+            return parsedValue;
+        } catch (NumberFormatException e) {
+            editText.setError(getString(errorResId));
+            return null;
+        }
+    }
+
+    @Nullable
+    private Integer parseNonNegativeInt(EditText editText, @StringRes int errorResId) {
+        String value = editText.getText().toString().trim();
+        try {
+            int parsedValue = Integer.parseInt(value);
+            if (parsedValue < 0) {
                 editText.setError(getString(errorResId));
                 return null;
             }
