@@ -256,11 +256,20 @@ public class LoggingActivity extends AppCompatActivity {
         }
 
         String mode = mChannelHoppingSwitch.isChecked() ? MODE_NAME_HOPPING : MODE_NAME_BATCHED;
+        String prefix = buildFileNamePrefix(phonePixelColumn, phonePixelRow, mode);
+        if (mAutoApCountSwitch.isChecked()) {
+            int timerSec = parseIntOrDefault(
+                    mTimerIntervalEditText, TIMER_INTERVAL_SECONDS_DEFAULT);
+            int rangingMs = parseIntOrDefault(
+                    mRangingIntervalEditText, RANGING_INTERVAL_MS_DEFAULT);
+            prefix = String.format(
+                    Locale.US,
+                    "Variable_APs_Count_%ds_per_step_%dms_interval_",
+                    timerSec,
+                    rangingMs) + prefix;
+        }
         try {
-            LoggingSession.createNewLoggingSession(
-                    this,
-                    mScanResult,
-                    buildFileNamePrefix(phonePixelColumn, phonePixelRow, mode));
+            LoggingSession.createNewLoggingSession(this, mScanResult, prefix);
             mLastLoggedApCount = -1;
             Toast.makeText(this, R.string.logging_session_created, Toast.LENGTH_SHORT).show();
             refreshSessionUi();
@@ -671,6 +680,14 @@ public class LoggingActivity extends AppCompatActivity {
         } catch (NumberFormatException e) {
             editText.setError(getString(errorResId));
             return null;
+        }
+    }
+
+    private int parseIntOrDefault(EditText editText, int fallback) {
+        try {
+            return Integer.parseInt(editText.getText().toString().trim());
+        } catch (NumberFormatException e) {
+            return fallback;
         }
     }
 
